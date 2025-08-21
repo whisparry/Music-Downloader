@@ -26,7 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateYtdlp: () => ipcRenderer.invoke('update-ytdlp'),
     openExternalLink: (url) => ipcRenderer.send('open-external-link', url),
     closeApp: () => ipcRenderer.send('close-app'),
+    restartApp: () => ipcRenderer.send('restart-app'),
     onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, ...args) => callback(...args)),
+    onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (event, ...args) => callback(...args)),
+    onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (event, ...args) => callback(...args)),
     onMediaKeyPlayPause: (callback) => ipcRenderer.on('media-key-play-pause', callback),
     onMediaKeyNext: (callback) => ipcRenderer.on('media-key-next', callback),
     onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback)

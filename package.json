@@ -29,8 +29,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "your-github-username",
-        "repo": "your-repo-name"
+        "owner": "whisparry",
+        "repo": "Music-Downloader"
       }
     ],
     "directories": {

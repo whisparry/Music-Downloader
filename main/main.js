@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, globalShortcut } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
@@ -179,6 +180,9 @@ function createWindow() {
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+        if (!isDev) {
+            autoUpdater.checkForUpdates();
+        }
     });
 
     mainWindow.on('close', (event) => {
@@ -1012,6 +1016,19 @@ app.whenReady().then(() => {
             });
         });
     }
+});
+
+// --- AUTO UPDATER LOGIC ---
+autoUpdater.on('update-available', () => {
+    mainWindow.webContents.send('update-available');
+});
+
+autoUpdater.on('update-downloaded', () => {
+    mainWindow.webContents.send('update-downloaded');
+});
+
+ipcMain.on('restart-app', () => {
+    autoUpdater.quitAndInstall();
 });
 
 // --- ERROR HANDLING ---

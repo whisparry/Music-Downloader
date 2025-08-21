@@ -1,0 +1,9 @@
+config.json
+gemini_read_this.txt
+downloads/
+node_modules/
+assets/
+dist/
+things to add.txt
+package-lock.json
+yt-dlp/

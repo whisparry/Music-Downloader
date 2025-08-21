@@ -36,6 +36,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const loadingOverlay = document.getElementById('loading-overlay');
     const dropZone = document.getElementById('drop-zone');
     
+    // Update elements
+    const updateNotification = document.getElementById('update-notification');
+    const updateMessage = document.getElementById('update-message');
+    const restartBtn = document.getElementById('restart-btn');
+
     // Settings elements
     const themeGridContainer = document.getElementById('theme-grid');
     const favoriteThemeGrid = document.getElementById('favorite-theme-grid');
@@ -1370,5 +1375,21 @@ window.addEventListener('DOMContentLoaded', () => {
     spotifyLink.addEventListener('click', (e) => {
         e.preventDefault();
         window.electronAPI.openExternalLink(e.target.href);
+    });
+
+    // --- Auto Updater Logic ---
+    window.electronAPI.onUpdateAvailable(() => {
+        updateNotification.classList.remove('hidden');
+        updateMessage.textContent = 'A new update is available. Downloading now...';
+    });
+
+    window.electronAPI.onUpdateDownloaded(() => {
+        updateNotification.classList.remove('hidden');
+        updateMessage.textContent = 'Update downloaded. It will be installed on restart.';
+        restartBtn.classList.remove('hidden');
+    });
+
+    restartBtn.addEventListener('click', () => {
+        window.electronAPI.restartApp();
     });
 });

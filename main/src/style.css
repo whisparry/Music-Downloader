@@ -102,6 +102,40 @@ body, html {
     position: relative;
 }
 
+/* Auto-updater Notification Bar */
+.update-notification {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--accent-primary);
+    color: var(--accent-text-color);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 1001;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.update-notification p {
+    margin: 0;
+    color: var(--accent-text-color);
+}
+
+.update-notification button {
+    padding: 5px 15px;
+    font-size: 14px;
+    background-color: var(--accent-text-color);
+    color: var(--accent-primary);
+    border: none;
+}
+
+.update-notification button:hover {
+    opacity: 0.9;
+    background-color: var(--accent-text-color);
+}
+
 @keyframes viewFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
