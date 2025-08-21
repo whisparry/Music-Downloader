@@ -90,6 +90,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const pmTracksContainer = document.getElementById('pm-tracks-container');
     const pmTracksHeader = document.getElementById('pm-tracks-header');
     const pmPlaylistSearchInput = document.getElementById('pm-playlist-search-input');
+    const pmTrackSearchInput = document.getElementById('pm-track-search-input');
     const createNewPlaylistBtnPm = document.getElementById('create-new-playlist-btn-pm');
     const moveTrackModal = document.getElementById('move-track-modal');
     const moveTrackNameEl = document.getElementById('move-track-name');
@@ -526,6 +527,12 @@ window.addEventListener('DOMContentLoaded', () => {
         if (isPmInitialized) return;
         pmRenderPlaylists();
 
+        pmTrackSearchInput.addEventListener('input', () => {
+            if (pmSelectedPlaylistPath) {
+                pmLoadAndRenderTracks(pmSelectedPlaylistPath);
+            }
+        });
+
         createNewPlaylistBtnPm.addEventListener('click', async () => {
             const result = await window.electronAPI.createNewPlaylist();
             if (result.success) {
@@ -695,12 +702,19 @@ window.addEventListener('DOMContentLoaded', () => {
     async function pmLoadAndRenderTracks(playlistPath) {
         const { tracks } = await window.electronAPI.getPlaylistTracks(playlistPath);
         pmTracksContainer.innerHTML = '';
-        if (!tracks || tracks.length === 0) {
-            pmTracksContainer.innerHTML = `<div class="empty-playlist-message">This playlist is empty.</div>`;
+
+        const searchQuery = pmTrackSearchInput.value.trim().toLowerCase();
+        let filteredTracks = tracks;
+        if (searchQuery) {
+            filteredTracks = tracks.filter(track => track.name.toLowerCase().includes(searchQuery));
+        }
+
+        if (!filteredTracks || filteredTracks.length === 0) {
+            pmTracksContainer.innerHTML = `<div class="empty-playlist-message">This playlist is empty${searchQuery ? ' or no tracks match your search' : ''}.</div>`;
             return;
         }
 
-        tracks.forEach(track => {
+        filteredTracks.forEach(track => {
             const item = document.createElement('div');
             item.className = 'pm-track-item';
 
