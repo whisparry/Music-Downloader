@@ -1,0 +1,69 @@
+{
+  "name": "downloader-app",
+  "version": "5.5.13",
+  "description": "Desktop app to download from Spotify and YouTube.",
+  "main": "main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "author": "whisparry",
+  "license": "ISC",
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "axios": "^1.7.2",
+    "commander": "^12.1.0",
+    "electron-updater": "^6.2.1",
+    "fluent-ffmpeg": "^2.1.3",
+    "music-metadata": "^7.14.0",
+    "readline-sync": "^1.4.10",
+    "spotify-web-api-node": "^5.0.2"
+  },
+  "devDependencies": {
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.yourname.musicdownloader",
+    "productName": "Music Downloader",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "your-github-username",
+        "repo": "your-repo-name"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "main/yt-dlp",
+        "to": "yt-dlp",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "main/assets",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "main/assets/icon.png",
+      "signAndEditExecutable": false,
+      "verifyUpdateCodeSignature": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- FIX: Add a Content Security Policy to address the Electron security warning. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    <title>Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="title-bar">
+        <div class="title-bar-controls">
+            <button id="close-btn" class="title-bar-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="nav-item active" id="home-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </div>
+            <div class="nav-item" id="settings-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </div>
+            <div class="nav-item" id="advanced-settings-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            </div>
+            <div class="nav-item" id="player-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+            </div>
+            <div class="nav-item" id="playlist-management-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </div>
+            <div class="nav-item" id="stats-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+            </div>
+            <div class="nav-item" id="console-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+            </div>
+            <div class="nav-item" id="help-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="loading-overlay" class="loading-overlay hidden">
+                <div class="spinner"></div>
+                <p>Loading Tracks...</p>
+            </div>
+            <!-- Home View -->
+            <div id="home-view" class="view active-view">
+                <div id="drop-zone" class="drop-zone">
+                    <p>Drop Links Here</p>
+                </div>
+                <h1>Downloader</h1>
+                <p class="sub-heading">Spotify or YouTube Link</p>
+                <textarea id="links-input" placeholder="Paste your links here..."></textarea>
+                <div class="button-container">
+                    <button id="download-btn">Download</button>
+                    <button id="cancel-btn" class="hidden">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Playlist Management View -->
+            <div id="playlist-management-view" class="view">
+                <h1>Playlist Management</h1>
+                <div class="player-main-content">
+                    <!-- Left Panel: Playlists -->
+                    <div class="playlists-panel">
+                        <div class="panel-header">
+                            <h2>Playlists</h2>
+                        </div>
+                        <div class="playlist-search-container">
+                            <input type="text" id="pm-playlist-search-input" placeholder="Search playlists...">
+                        </div>
+                        <div id="pm-playlists-container" class="panel-list">
+                            <div id="pm-favorite-playlists-container" class="hidden">
+                                <h4 class="playlist-section-header">Favorites</h4>
+                                <div id="pm-favorite-playlists-grid"></div>
+                            </div>
+                            <h4 id="pm-all-playlists-header" class="playlist-section-header">Playlists</h4>
+                            <div id="pm-all-playlists-grid"></div>
+                        </div>
+                        <div class="panel-footer">
+                            <div id="create-new-playlist-btn-pm" class="playlist-list-item create-playlist-btn">
+                                <span>+ Create New Playlist</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Right Panel: Tracks -->
+                    <div class="tracks-panel">
+                        <div class="panel-header">
+                            <h2 id="pm-tracks-header">Select a playlist</h2>
+                        </div>
+                        <div id="pm-tracks-container" class="panel-list">
+                            <!-- Tracks for management will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Move Track Modal -->
+            <div id="move-track-modal" class="modal hidden">
+                <div class="modal-content">
+                    <span class="modal-close-btn">&times;</span>
+                    <h2>Move Track</h2>
+                    <p>Move "<span id="move-track-name"></span>" to:</p>
+                    <select id="move-track-destination-select"></select>
+                    <div class="modal-buttons">
+                        <button id="move-track-confirm-btn">Move</button>
+                        <button id="move-track-cancel-btn" class="cancel-btn">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Library View -->
+            <div id="library-view" class="view">
+                <h1>Music Library</h1>
+                <p id="library-scan-status">Scan your library to begin.</p>
+                <div class="library-controls">
+                    <input type="text" id="library-search-input" placeholder="Search all tracks...">
+                    <button id="scan-library-btn">Scan Library</button>
+                </div>
+                <div class="library-table-container">
+                    <table id="library-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="title">Title</th>
+                                <th data-sort="artist">Artist</th>
+                                <th data-sort="album">Album</th>
+                                <th data-sort="playlist">Playlist</th>
+                            </tr>
+                        </thead>
+                        <tbody id="library-table-body">
+                            <!-- Tracks will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Statistics View -->
+            <div id="stats-view" class="view">
+                <h1>Statistics</h1>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Songs Downloaded</h3>
+                        <p id="total-songs-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Playlists Created</h3>
+                        <p id="playlists-created-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Downloads Initiated</h3>
+                        <p id="downloads-initiated-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Failed Items</h3>
+                        <p id="songs-failed-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Links Processed</h3>
+                        <p id="links-processed-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Spotify Links</h3>
+                        <p id="spotify-links-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>YouTube Links</h3>
+                        <p id="youtube-links-stat">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Success Rate</h3>
+                        <p id="success-rate-stat">0%</p>
+                    </div>
+                </div>
+                <button id="reset-stats-btn">Reset Statistics</button>
+            </div>
+
+            <!-- Settings View -->
+            <div id="settings-view" class="view">
+                <h1>Settings</h1>
+                <div class="settings-category">
+                    <div class="category-header" id="themes-category-header">
+                        <h3>Themes</h3>
+                        <span class="category-arrow">▼</span>
+                    </div>
+                    <div class="category-content" id="themes-category-content">
+                        <div id="favorites-container" class="hidden">
+                            <h4 class="theme-section-header">Favorites</h4>
+                            <div class="theme-grid" id="favorite-theme-grid"></div>
+                        </div>
+                        <h4 class="theme-section-header">All Themes</h4>
+                        <div class="theme-grid" id="theme-grid"></div>
+                    </div>
+                </div>
+                <div class="settings-category">
+                    <div class="category-header" id="config-category-header">
+                        <h3>Config</h3>
+                        <span class="category-arrow">▼</span>
+                    </div>
+                    <div class="category-content" id="config-category-content">
+                        <div class="settings-group">
+                            <label for="clientId">Spotify Client ID</label>
+                            <input type="text" id="clientId" placeholder="Enter your Spotify Client ID">
+                        </div>
+                        <div class="settings-group">
+                            <label for="clientSecret">Spotify Client Secret</label>
+                            <div class="input-with-button">
+                                <input type="password" id="clientSecret" placeholder="Enter your Spotify Client Secret">
+                                <button id="toggle-secret-btn">Show</button>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <label for="downloadsPath">Download Location</label>
+                            <div class="input-with-button">
+                                <input type="text" id="downloadsPath" placeholder="Downloads will be saved here" readonly>
+                                <button id="change-path-btn">Change</button>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <label for="playlistsPath">Playlists Folder</label>
+                            <div class="input-with-button">
+                                <input type="text" id="playlistsPath" placeholder="Select a folder containing your playlists" readonly>
+                                <button id="change-playlists-path-btn">Change</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Settings View -->
+            <div id="advanced-settings-view" class="view">
+                <h1>Advanced Settings</h1>
+                <div class="settings-group">
+                    <label for="fileExtension">Audio File Extension</label>
+                    <select id="fileExtension">
+                        <option value="m4a">m4a (best quality)</option>
+                        <option value="mp3">mp3</option>
+                        <option value="wav">wav</option>
+                        <option value="flac">flac</option>
+                        <option value="ogg">ogg</option>
+                        <option value="webm">webm</option>
+                    </select>
+                </div>
+                <div class="settings-group">
+                    <label for="downloadThreads">Download Threads</label>
+                    <input type="number" id="downloadThreads" placeholder="1-20" min="1">
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="autoCreatePlaylist">Automatically Create Playlist</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autoCreatePlaylist">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="hideRefreshButtons">Hide Refresh Buttons</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hideRefreshButtons">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="hidePlaylistCounts">Hide Playlist Counts</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hidePlaylistCounts">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="hideTrackNumbers">Hide Track Numbers</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hideTrackNumbers">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="hideSearchBars">Hide Search Bars</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="hideSearchBars">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="normalizeVolume">Normalize Volume (slower)</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="normalizeVolume">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="settings-group toggle-switch-container">
+                    <label for="embedMetadata">Embed Metadata & Album Art (slower)</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="embedMetadata" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                 
+                <div class="settings-category">
+                    <div class="category-header" id="animations-category-header">
+                        <h3>Animations</h3>
+                        <span class="category-arrow">▼</span>
+                    </div>
+                    <div class="category-content" id="animations-category-content">
+                        <div class="settings-group">
+                            <label for="tab-speed-slider">Tab Switch Speed: <span id="tab-speed-value">0.3s</span></label>
+                            <input type="range" min="0.1" max="1" step="0.1" value="0.3" id="tab-speed-slider">
+                        </div>
+                        <div class="settings-group">
+                            <label for="dropdown-speed-slider">Dropdown Speed: <span id="dropdown-speed-value">0.4s</span></label>
+                            <input type="range" min="0.1" max="1" step="0.1" value="0.4" id="dropdown-speed-slider">
+                        </div>
+                        <div class="settings-group">
+                            <label for="theme-fade-slider">Theme Fade Speed: <span id="theme-fade-value">0.3s</span></label>
+                            <input type="range" min="0.1" max="1" step="0.1" value="0.3" id="theme-fade-slider">
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-group advanced-actions-container">
+                    <div class="top-buttons">
+                        <button id="update-ytdlp-btn">Update yt-dlp</button>
+                        <button id="clear-cache-btn" class="secondary-btn">Clear Link Cache</button>
+                    </div>
+                    <p id="advanced-action-status" class="update-status-text"></p>
+                    <div class="bottom-button">
+                        <button id="reset-settings-btn">Reset to Default</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Player View -->
+            <div id="player-view" class="view">
+                <div class="player-main-content">
+                    <!-- Left Panel: Playlists -->
+                    <div class="playlists-panel">
+                        <div class="panel-header">
+                            <h2>Playlists</h2>
+                            <div class="playlist-stats">
+                                <span id="total-playlists-count">0 Playlists</span>
+                                <span id="total-tracks-count">0 Tracks</span>
+                            </div>
+                        </div>
+                        <div class="playlist-search-container">
+                            <input type="text" id="playlist-search-input-playlists" placeholder="Search playlists...">
+                        </div>
+                        <div id="playlists-container" class="panel-list">
+                            <div id="favorite-playlists-container" class="hidden">
+                                <h4 class="playlist-section-header">Favorites</h4>
+                                <div id="favorite-playlists-grid"></div>
+                            </div>
+                            <h4 id="all-playlists-header" class="playlist-section-header">Playlists</h4>
+                            <div id="all-playlists-grid"></div>
+                        </div>
+                        <div class="panel-footer">
+                            <button id="refresh-playlists-btn">Refresh Playlists</button>
+                        </div>
+                    </div>
+                    <!-- Right Panel: Tracks -->
+                    <div class="tracks-panel">
+                        <div class="panel-header">
+                            <h2 id="tracks-header">Tracks</h2>
+                            <span id="current-playlist-track-count">0 tracks</span>
+                        </div>
+                        <div class="playlist-search-bar">
+        <input type="text" id="playlist-search-input" placeholder="Search songs..." />
+        <button id="playlist-search-btn" title="Search">
+            🔍
+        </button>
+    </div>
+                        <div id="playlist-container" class="panel-list">
+                            <!-- Tracks will be loaded here -->
+                        </div>
+                        <div class="panel-footer">
+                            <button id="refresh-tracks-btn">Refresh Tracks</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <div id="now-playing">No track selected</div>
+                    <div class="progress-container">
+                        <span id="current-time">0:00</span>
+                        <div id="progress-bar-container">
+                            <div id="progress-bar"></div>
+                        </div>
+                        <span id="total-duration">0:00</span>
+                    </div>
+                    <div class="player-buttons-wrapper">
+                        <button id="shuffle-btn" class="shuffle-btn" title="Shuffle">
+                            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="16 3 21 3 21 8"></polyline>
+                                <line x1="4" y1="20" x2="21" y2="3"></line>
+                                <polyline points="21 16 21 21 16 21"></polyline>
+                                <line x1="15" y1="15" x2="21" y2="21"></line>
+                                <line x1="4" y1="4" x2="11" y2="11"></line>
+                            </svg>
+                        </button>
+                        <div class="main-controls">
+                            <button id="prev-btn" title="Previous">
+                                <svg class="player-icon" viewBox="0 0 24 24"><rect class="icon-bg" width="24" height="24" rx="4"/><polygon class="icon-fg" points="19 5 19 19 12 12"/><polygon class="icon-fg" points="12 5 12 19 5 12"/></svg>
+                            </button>
+                            <button id="play-pause-btn" title="Play/Pause">
+                                <svg id="play-icon" class="player-icon" viewBox="0 0 24 24"><rect class="icon-bg" width="24" height="24" rx="4"/><polygon class="icon-fg" points="5 3 19 12 5 21 5 3"/></svg>
+                                <svg id="pause-icon" class="player-icon hidden" viewBox="0 0 24 24"><rect class="icon-bg" width="24" height="24" rx="4"/><rect class="icon-fg" x="6" y="4" width="4" height="16"/><rect class="icon-fg" x="14" y="4" width="4" height="16"/></svg>
+                            </button>
+                            <button id="next-btn" title="Next">
+                                <svg class="player-icon" viewBox="0 0 24 24"><rect class="icon-bg" width="24" height="24" rx="4"/><polygon class="icon-fg" points="5 5 5 19 12 12"/><polygon class="icon-fg" points="12 5 12 19 19 12"/></svg>
+                            </button>
+                        </div>
+                        <div class="volume-container">
+                            <div id="volume-icon-container" title="Mute/Unmute">
+                                <svg id="volume-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                <svg id="mute-icon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                            </div>
+                            <input type="range" id="volume-slider" min="0" max="100" value="100">
+                        </div>
+                    </div>
+                </div>
+                <audio id="audio-player"></audio>
+            </div>
+
+            <!-- Console View -->
+            <div id="console-view" class="view">
+                <h2>Console Output</h2>
+                <div id="console-output" class="console-output"></div>
+                <button id="big-cancel-btn" class="hidden">Cancel Download</button>
+                <button id="create-playlist-btn" class="hidden">Create Playlist</button>
+            </div>
+
+            <!-- Help View -->
+            <div id="help-view" class="view">
+                <h1>Help</h1>
+                <h2>How to get Spotify Credentials</h2>
+                <ol class="help-list">
+                    <li>Go to the Spotify Developer Dashboard: <a href="#" id="spotify-link">developer.spotify.com/dashboard</a></li>
+                    <li>Log in with your Spotify account.</li>
+                    <li>Click the "Create App" button.</li>
+                    <li>Give your app a name and description (e.g., "Downloader") and check the boxes to agree to the terms.</li>
+                    <li>Once created, you will see your <strong>Client ID</strong> on the dashboard. Click "Show client secret" to see your <strong>Client Secret</strong>.</li>
+                    <li>Copy and paste both of these values into the Settings tab of this application.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    <script src="renderer.js" type="module"></script>
+</body>
+</html>
