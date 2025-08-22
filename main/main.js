@@ -6,6 +6,7 @@ const fs = require('fs');
 const SpotifyWebApi = require('spotify-web-api-node');
 const mm = require('music-metadata');
 const axios = require('axios');
+const log = require('electron-log');
 
 // --- CONSTANTS & CONFIG ---
 const supportedExtensions = ['.m4a', '.mp3', '.wav', '.flac', '.ogg', '.webm'];
@@ -146,6 +147,10 @@ function getNextYtdlpPath() {
 }
 
 // --- INITIAL SETUP ---
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+log.info('App starting...');
+
 loadConfig();
 loadStats();
 loadCache();
@@ -1019,11 +1024,33 @@ app.whenReady().then(() => {
 });
 
 // --- AUTO UPDATER LOGIC ---
-autoUpdater.on('update-available', () => {
+autoUpdater.on('checking-for-update', () => {
+    log.info('Checking for update...');
+    mainWindow.webContents.send('update-status', '[Updater] Checking for new version...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    log.info('Update available.', info);
     mainWindow.webContents.send('update-available');
 });
 
-autoUpdater.on('update-downloaded', () => {
+autoUpdater.on('update-not-available', (info) => {
+    log.info('Update not available.', info);
+    mainWindow.webContents.send('update-status', '[Updater] Application is up to date.');
+});
+
+autoUpdater.on('error', (err) => {
+    log.error('Error in auto-updater. ' + err);
+    mainWindow.webContents.send('update-status', `[Updater] Error: ${err.message}`);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    const log_message = `Downloaded ${progressObj.percent.toFixed(2)}% (${(progressObj.bytesPerSecond / 1024).toFixed(2)} KB/s)`;
+    log.info(log_message);
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded.', info);
     mainWindow.webContents.send('update-downloaded');
 });
 
