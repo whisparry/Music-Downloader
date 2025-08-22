@@ -1039,129 +1039,14 @@ body.hide-search-bars .playlist-search-bar {
     stroke: var(--danger-primary);
 }
 
-.playlist-list-item:hover, .playlist-item:hover {
-    background-color: var(--bg-tertiary);
-}
-
-.playlist-list-item.mixed-in {
-    background-color: var(--bg-tertiary);
-}
-
-.playlist-list-item.active, .playlist-item.active {
-    background-color: var(--accent-primary);
-    color: var(--accent-text-color);
-    font-weight: bold;
-}
-
-.create-playlist-btn {
-    border: 2px dashed var(--border-color);
-    color: var(--text-secondary);
-    justify-content: center;
-    font-style: italic;
-}
-
-.create-playlist-btn:hover {
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
-    background-color: var(--bg-tertiary);
-}
-
-.playlist-item.active .track-number {
-    color: var(--accent-text-color);
-}
-
-.playlist-item.drag-over {
-    background-color: var(--accent-primary) !important;
-    opacity: 0.5;
-}
-
-.track-number {
-    flex-shrink: 0;
-    width: 35px; /* FIX: Increased width to accommodate larger track numbers (up to 9999) and prevent overlap. */
-    text-align: right;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-}
-
-.track-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-grow: 1;
-}
-
-.pm-track-item {
-    display: flex;
-    align-items: center;
-    padding: 10px;
-    border-radius: 5px;
-    margin: 2px;
-    gap: 10px;
-}
-
-.pm-track-item:hover {
-    background-color: var(--bg-tertiary);
-}
-
-.pm-track-name {
-    flex-grow: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.inline-edit-input {
-    width: 100%;
-    padding: 0 2px;
-    margin: 0;
-    border: 1px solid var(--accent-primary);
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-    font-size: inherit;
-    font-family: inherit;
-    border-radius: 3px;
-    outline: none;
-    box-sizing: border-box;
-}
-
-.pm-track-actions {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.pm-action-btn {
-    background: none;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.pm-action-btn:hover {
-    background-color: var(--accent-hover);
-    color: var(--accent-text-color);
-    border-color: var(--accent-hover);
-}
-
-.pm-delete-btn:hover {
-    background-color: var(--danger-hover);
-    border-color: var(--danger-hover);
-    color: #fff;
-}
-
 .empty-playlist-message {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     height: 100%;
     color: var(--text-secondary);
     font-style: italic;
-    padding: 20px;
+    padding: 40px 20px 20px 20px;
     text-align: center;
     box-sizing: border-box;
 }
@@ -1366,7 +1251,6 @@ body.hide-search-bars .playlist-search-bar {
     align-items: center;
     gap: 6px;
     padding: 8px 12px 0 12px;
-    flex-grow: 1;
 }
 
 #playlist-search-input {
