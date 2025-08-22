@@ -1,6 +1,6 @@
 {
   "name": "soundlink-app",
-  "version": "5.11.0",
+  "version": "5.11.1",
   "description": "Desktop app to download from Spotify and YouTube.",
   "main": "main/main.js",
   "scripts": {
@@ -31,7 +31,7 @@
       {
         "provider": "github",
         "owner": "whisparry",
-        "repo": "Music-Downloader"
+        "repo": "SoundLink"
       }
     ],
     "directories": {
