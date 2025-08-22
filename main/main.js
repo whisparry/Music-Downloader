@@ -24,7 +24,7 @@ const ytdlpDir = isDev ? path.join(__dirname, 'yt-dlp') : path.join(process.reso
 let config = {};
 let stats = {};
 let linkCache = {};
-let downloadsDir = path.join(app.getPath('downloads'), 'Downloader');
+let downloadsDir = path.join(app.getPath('downloads'), 'SoundLink');
 let mainWindow;
 let tray = null;
 let activeProcesses = new Set();
@@ -232,7 +232,7 @@ app.whenReady().then(() => {
                 } 
             }
         ]);
-        tray.setToolTip('Downloader');
+        tray.setToolTip('SoundLink');
         tray.setContextMenu(contextMenu);
         tray.on('click', () => {
             mainWindow.show();
@@ -327,7 +327,7 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle('get-default-settings', () => {
-        const defaultDownloadsPath = path.join(app.getPath('downloads'), 'Downloader');
+        const defaultDownloadsPath = path.join(app.getPath('downloads'), 'SoundLink');
         return { 
             theme: 'dark',
             fileExtension: 'm4a',

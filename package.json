@@ -1,6 +1,6 @@
 {
-  "name": "downloader-app",
-  "version": "5.10.1",
+  "name": "soundlink-app",
+  "version": "5.11.0",
   "description": "Desktop app to download from Spotify and YouTube.",
   "main": "main/main.js",
   "scripts": {
@@ -25,8 +25,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.whisparry.musicdownloader",
-    "productName": "Music Downloader",
+    "appId": "com.whisparry.soundlink",
+    "productName": "SoundLink",
     "publish": [
       {
         "provider": "github",
@@ -65,7 +65,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "Music-Downloader-Setup-${version}.${ext}"
+      "artifactName": "SoundLink-Setup-${version}.${ext}"
     }
   }
 }
