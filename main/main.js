@@ -75,7 +75,6 @@ function loadConfig() {
                 favoriteThemes: [],
                 favoritePlaylists: [],
                 normalizeVolume: false,
-                embedMetadata: true,
                 hideSearchBars: false,
                 playlistsFolderPath: ''
             };
@@ -338,7 +337,6 @@ app.whenReady().then(() => {
             favoriteThemes: [],
             favoritePlaylists: [],
             normalizeVolume: false,
-            embedMetadata: true,
             hideSearchBars: false,
         };
     });
@@ -356,6 +354,12 @@ app.whenReady().then(() => {
         } catch (error) {
             console.error('Failed to save settings:', error);
             return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.on('show-in-explorer', (event, path) => {
+        if (path && fs.existsSync(path)) {
+            shell.showItemInFolder(path);
         }
     });
 
@@ -764,14 +768,6 @@ app.whenReady().then(() => {
                         return {
                             name: track.name,
                             artist: track.artists.map(a => a.name).join(', '),
-                            metadata: {
-                                title: track.name,
-                                artist: track.artists.map(a => a.name).join(', '),
-                                album: track.album.name,
-                                trackNumber: track.track_number,
-                                year: track.album.release_date ? track.album.release_date.substring(0, 4) : '',
-                                artworkUrl: track.album.images.length > 0 ? track.album.images[0].url : null
-                            }
                         };
                     }));
                     offset += 100;
@@ -791,12 +787,6 @@ app.whenReady().then(() => {
                     tracks.push(...data.body.items.map(track => ({
                         name: track.name,
                         artist: track.artists.map(a => a.name).join(', '),
-                        metadata: {
-                            title: track.name,
-                            artist: track.artists.map(a => a.name).join(', '),
-                            trackNumber: track.track_number,
-                            ...albumInfo
-                        }
                     })));
                     offset += 50;
                 }
@@ -806,14 +796,6 @@ app.whenReady().then(() => {
                 tracks.push({
                     name: track.name,
                     artist: track.artists.map(a => a.name).join(', '),
-                    metadata: {
-                        title: track.name,
-                        artist: track.artists.map(a => a.name).join(', '),
-                        album: track.album.name,
-                        trackNumber: track.track_number,
-                        year: track.album.release_date ? track.album.release_date.substring(0, 4) : '',
-                        artworkUrl: track.album.images.length > 0 ? track.album.images[0].url : null
-                    }
                 });
             }
             return { tracks: tracks.filter(Boolean), playlistName };
@@ -874,7 +856,7 @@ app.whenReady().then(() => {
     }
 
     async function downloadItem(item, index, total) {
-        const { youtubeLink: link, trackName, metadata } = item;
+        const { youtubeLink: link, trackName } = item;
         const sanitizedTrackName = sanitizeFilename(trackName);
         const numberPrefix = (index + 1).toString().padStart(3, '0');
         const outputTemplate = path.join(downloadsDir, `${numberPrefix} - ${sanitizedTrackName}.%(ext)s`);
@@ -915,17 +897,6 @@ app.whenReady().then(() => {
                 if (isDownloadCancelled) return reject(new Error('Download cancelled'));
                 if (code === 0 && finalPath) {
                     mainWindow.webContents.send('update-status', `✅ [${index + 1}/${total}] Finished: "${sanitizedTrackName}"`);
-                    
-                    if (config.embedMetadata && metadata) {
-                        mainWindow.webContents.send('update-status', `✍️ [${index + 1}/${total}] Embedding metadata for "${sanitizedTrackName}"...`);
-                        try {
-                            await embedMetadata(finalPath, metadata);
-                            mainWindow.webContents.send('update-status', `✨ [${index + 1}/${total}] Metadata embedded for "${sanitizedTrackName}"`);
-                        } catch (embedError) {
-                            mainWindow.webContents.send('update-status', `⚠️ [${index + 1}/${total}] Failed to embed metadata for "${sanitizedTrackName}": ${embedError.message}`);
-                        }
-                    }
-                    
                     resolve(finalPath);
                 } else {
                     const errorMsg = `❌ [${index + 1}/${total}] Failed: "${sanitizedTrackName}" (yt-dlp exit code ${code})`;
@@ -935,88 +906,6 @@ app.whenReady().then(() => {
             });
             proc.on('error', (err) => {
                 activeProcesses.delete(proc);
-                reject(err);
-            });
-        });
-    }
-
-    async function embedMetadata(filePath, metadata) {
-        if (!metadata.artworkUrl) {
-            // If no artwork, just embed text metadata
-            return runFfmpegMetadata(filePath, metadata, null);
-        }
-    
-        const tempArtworkPath = path.join(app.getPath('temp'), `artwork-${Date.now()}.jpg`);
-        try {
-            const response = await axios({
-                url: metadata.artworkUrl,
-                responseType: 'stream',
-            });
-            const writer = fs.createWriteStream(tempArtworkPath);
-            response.data.pipe(writer);
-    
-            await new Promise((resolve, reject) => {
-                writer.on('finish', resolve);
-                writer.on('error', reject);
-            });
-    
-            await runFfmpegMetadata(filePath, metadata, tempArtworkPath);
-    
-        } finally {
-            // Clean up the downloaded artwork file
-            if (fs.existsSync(tempArtworkPath)) {
-                fs.unlinkSync(tempArtworkPath);
-            }
-        }
-    }
-    
-    function runFfmpegMetadata(filePath, metadata, artworkPath) {
-        return new Promise((resolve, reject) => {
-            const tempOutputPath = filePath + '.tmp.m4a';
-            const ffmpegPath = path.join(ytdlpDir, 'ffmpeg.exe');
-    
-            const args = [
-                '-i', filePath,
-            ];
-    
-            if (artworkPath) {
-                args.push('-i', artworkPath, '-map', '0:a', '-map', '1:v', '-c:v', 'copy');
-            } else {
-                args.push('-map', '0:a');
-            }
-    
-            args.push(
-                '-c:a', 'copy',
-                '-metadata', `title=${metadata.title || ''}`,
-                '-metadata', `artist=${metadata.artist || ''}`,
-                '-metadata', `album=${metadata.album || ''}`,
-                '-metadata', `track=${metadata.trackNumber || ''}`,
-                '-metadata', `date=${metadata.year || ''}`,
-                '-y', // Overwrite output file if it exists
-                tempOutputPath
-            );
-    
-            const proc = spawn(ffmpegPath, args);
-    
-            proc.on('close', (code) => {
-                if (code === 0) {
-                    fs.unlink(filePath, (err) => {
-                        if (err) return reject(err);
-                        fs.rename(tempOutputPath, filePath, (err) => {
-                            if (err) return reject(err);
-                            resolve();
-                        });
-                    });
-                } else {
-                    // If ffmpeg fails, delete the temp file if it exists
-                    if (fs.existsSync(tempOutputPath)) {
-                        fs.unlinkSync(tempOutputPath);
-                    }
-                    reject(new Error(`ffmpeg exited with code ${code}`));
-                }
-            });
-    
-            proc.on('error', (err) => {
                 reject(err);
             });
         });

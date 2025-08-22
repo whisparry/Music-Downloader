@@ -15,6 +15,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const helpBtn = document.getElementById('help-btn');
     const createPlaylistBtn = document.getElementById('create-playlist-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
+    const repeatBtn = document.getElementById('repeat-btn');
+    const repeatStatusText = document.getElementById('repeat-status-text');
     const refreshPlaylistsBtn = document.getElementById('refresh-playlists-btn');
     const refreshTracksBtn = document.getElementById('refresh-tracks-btn');
 
@@ -127,7 +129,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const hidePlaylistCountsInput = document.getElementById('hidePlaylistCounts');
     const hideTrackNumbersInput = document.getElementById('hideTrackNumbers');
     const normalizeVolumeInput = document.getElementById('normalizeVolume');
-    const embedMetadataInput = document.getElementById('embedMetadata');
     const hideSearchBarsInput = document.getElementById('hideSearchBars');
     const updateYtdlpBtn = document.getElementById('update-ytdlp-btn');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
@@ -143,6 +144,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let playlist = [];
     let originalPlaylist = []; // To store the unshuffled order
     let isShuffled = false; // To track shuffle state
+    let repeatState = 0; // 0: off, 1: repeat queue, 2: repeat single
     let currentTrackIndex = -1;
     let playlists = [];
     let activePlaylistPath = null;
@@ -181,6 +183,32 @@ window.addEventListener('DOMContentLoaded', () => {
         pmPlaylistSearchInput.value = playlistSearchInputPlaylists.value; // Sync inputs
         loadAndRenderPlaylists();
     });
+
+    // --- Clear Input Button Logic ---
+    function initializeClearButtons() {
+        document.querySelectorAll('.input-container').forEach(container => {
+            const input = container.querySelector('input, textarea');
+            const clearBtn = container.querySelector('.clear-btn');
+
+            if (input && clearBtn) {
+                const toggleClearButton = () => {
+                    clearBtn.classList.toggle('hidden', input.value.length === 0);
+                };
+
+                input.addEventListener('input', toggleClearButton);
+                clearBtn.addEventListener('click', () => {
+                    input.value = '';
+                    input.focus();
+                    // Manually trigger an input event so other listeners update
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+
+                // Initial check
+                toggleClearButton();
+            }
+        });
+    }
+    initializeClearButtons();
 
     // --- Loader Functions ---
     function showLoader() {
@@ -301,7 +329,6 @@ window.addEventListener('DOMContentLoaded', () => {
             hidePlaylistCounts: hidePlaylistCountsInput.checked,
             hideTrackNumbers: hideTrackNumbersInput.checked,
             normalizeVolume: normalizeVolumeInput.checked,
-            embedMetadata: embedMetadataInput.checked,
             hideSearchBars: hideSearchBarsInput.checked,
         };
         await window.electronAPI.saveSettings(newSettings);
@@ -355,12 +382,11 @@ window.addEventListener('DOMContentLoaded', () => {
             hideTrackNumbersInput.checked = currentConfig.hideTrackNumbers || false;
             body.classList.toggle('hide-track-numbers', hideTrackNumbersInput.checked);
             normalizeVolumeInput.checked = currentConfig.normalizeVolume || false;
-            embedMetadataInput.checked = typeof currentConfig.embedMetadata === 'boolean' ? currentConfig.embedMetadata : true;
             hideSearchBarsInput.checked = currentConfig.hideSearchBars || false;
             body.classList.toggle('hide-search-bars', hideSearchBarsInput.checked);
         }
         
-        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, embedMetadataInput, hideSearchBarsInput].forEach(input => {
+        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput].forEach(input => {
             input.addEventListener('change', saveSettings);
         });
 
@@ -678,15 +704,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
             item.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                const isFavorited = favoritePlaylists.includes(p.path);
-                if (isFavorited) {
-                    favoritePlaylists = favoritePlaylists.filter(path => path !== p.path);
-                } else {
-                    favoritePlaylists.push(p.path);
-                }
-                saveSettings();
-                pmRenderPlaylists();
-                if (isPlayerInitialized) loadAndRenderPlaylists();
+                window.electronAPI.showInExplorer(p.path);
             });
 
             if (favoritePlaylists.includes(p.path)) {
@@ -762,6 +780,11 @@ window.addEventListener('DOMContentLoaded', () => {
                         item.replaceWith(nameSpan); // Restore original on failure
                     }
                 });
+            });
+
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                window.electronAPI.showInExplorer(track.path);
             });
 
             actionsDiv.appendChild(moveBtn);
@@ -869,8 +892,11 @@ window.addEventListener('DOMContentLoaded', () => {
         prevBtn.addEventListener('click', playPreviousTrack);
         nextBtn.addEventListener('click', playNextTrack);
         shuffleBtn.addEventListener('click', toggleShuffle);
+        repeatBtn.addEventListener('click', toggleRepeat);
         refreshPlaylistsBtn.addEventListener('click', loadAndRenderPlaylists);
         refreshTracksBtn.addEventListener('click', loadQueueTracks);
+
+        updateRepeatButtonUI(); // Set initial state on load
 
         isPlayerInitialized = true;
         loadAndRenderPlaylists();
@@ -995,6 +1021,10 @@ window.addEventListener('DOMContentLoaded', () => {
             if (track.path) {
                 item.dataset.index = index;
                 item.addEventListener('click', () => playTrack(index));
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    window.electronAPI.showInExplorer(track.path);
+                });
             } else {
                 item.style.cursor = 'default';
                 item.style.color = 'var(--danger-primary)';
@@ -1223,11 +1253,24 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     function playNextTrack() {
-        if (currentTrackIndex < playlist.length - 1) {
-            playTrack(currentTrackIndex + 1);
+        // Handle repeat single
+        if (repeatState === 2 && currentTrackIndex !== -1) {
+            playTrack(currentTrackIndex);
+            return;
+        }
+
+        const nextIndex = currentTrackIndex + 1;
+        if (nextIndex < playlist.length) {
+            playTrack(nextIndex);
         } else {
-            playIcon.classList.remove('hidden');
-            pauseIcon.classList.add('hidden');
+            // Handle repeat queue
+            if (repeatState === 1) {
+                playTrack(0);
+            } else {
+                // End of queue, no repeat
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            }
         }
     }
 
@@ -1273,6 +1316,42 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     );
 }
+
+    function toggleRepeat() {
+        repeatState = (repeatState + 1) % 3; // Cycle through 0, 1, 2
+        updateRepeatButtonUI();
+    }
+
+    function updateRepeatButtonUI() {
+        repeatBtn.classList.remove('active-queue', 'active-single');
+        let title = 'Repeat Off';
+        let statusText = 'Off';
+        let iconHTML = `
+            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>`;
+
+        if (repeatState === 1) { // Repeat Queue
+            repeatBtn.classList.add('active-queue');
+            title = 'Repeat Queue';
+            statusText = 'Queue';
+        } else if (repeatState === 2) { // Repeat Single
+            repeatBtn.classList.add('active-single');
+            title = 'Repeat Single';
+            statusText = 'Single';
+            iconHTML = `
+            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                <text x="11" y="16" font-family="sans-serif" font-size="10" fill="currentColor" text-anchor="middle" dy=".3em">1</text>
+            </svg>`;
+        }
+        
+        repeatBtn.title = title;
+        repeatBtn.innerHTML = iconHTML;
+        repeatStatusText.textContent = statusText;
+    }
 
     function resetPlayerState() {
         audioPlayer.src = '';
@@ -1369,7 +1448,6 @@ window.addEventListener('DOMContentLoaded', () => {
         body.classList.toggle('hide-playlist-counts', hidePlaylistCountsInput.checked);
         hideTrackNumbersInput.checked = defaultSettings.hideTrackNumbers || false;
         body.classList.toggle('hide-track-numbers', hideTrackNumbersInput.checked);
-        embedMetadataInput.checked = defaultSettings.embedMetadata;
         hideSearchBarsInput.checked = defaultSettings.hideSearchBars || false;
         body.classList.toggle('hide-search-bars', hideSearchBarsInput.checked);
         tabSpeedSlider.value = defaultSettings.tabSwitchSpeed || 0.3;

@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getYtdlpCount: () => ipcRenderer.invoke('get-ytdlp-count'),
     updateYtdlp: () => ipcRenderer.invoke('update-ytdlp'),
     openExternalLink: (url) => ipcRenderer.send('open-external-link', url),
+    showInExplorer: (path) => ipcRenderer.send('show-in-explorer', path),
     closeApp: () => ipcRenderer.send('close-app'),
     restartApp: () => ipcRenderer.send('restart-app'),
     onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, ...args) => callback(...args)),

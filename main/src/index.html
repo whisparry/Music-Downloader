@@ -60,7 +60,10 @@
                 </div>
                 <h1>Downloader</h1>
                 <p class="sub-heading">Spotify or YouTube Link</p>
-                <textarea id="links-input" placeholder="Paste your links here..."></textarea>
+                <div class="input-container">
+                    <textarea id="links-input" placeholder="Paste your links here..."></textarea>
+                    <button class="clear-btn hidden">&times;</button>
+                </div>
                 <div class="button-container">
                     <button id="download-btn">Download</button>
                     <button id="cancel-btn" class="hidden">Cancel</button>
@@ -77,7 +80,10 @@
                             <h2>Playlists</h2>
                         </div>
                         <div class="playlist-search-container">
-                            <input type="text" id="pm-playlist-search-input" placeholder="Search playlists...">
+                            <div class="input-container">
+                                <input type="text" id="pm-playlist-search-input" placeholder="Search playlists...">
+                                <button class="clear-btn hidden">&times;</button>
+                            </div>
                         </div>
                         <div id="pm-playlists-container" class="panel-list">
                             <div id="pm-favorite-playlists-container" class="hidden">
@@ -99,7 +105,10 @@
                             <h2 id="pm-tracks-header">Select a playlist</h2>
                         </div>
                         <div class="playlist-search-container">
-                            <input type="text" id="pm-track-search-input" placeholder="Search tracks...">
+                            <div class="input-container">
+                                <input type="text" id="pm-track-search-input" placeholder="Search tracks...">
+                                <button class="clear-btn hidden">&times;</button>
+                            </div>
                         </div>
                         <div id="pm-tracks-container" class="panel-list">
                             <!-- Tracks for management will be loaded here -->
@@ -187,12 +196,16 @@
                     <div class="category-content" id="config-category-content">
                         <div class="settings-group">
                             <label for="clientId">Spotify Client ID</label>
-                            <input type="text" id="clientId" placeholder="Enter your Spotify Client ID">
+                            <div class="input-container">
+                                <input type="text" id="clientId" placeholder="Enter your Spotify Client ID">
+                                <button class="clear-btn hidden">&times;</button>
+                            </div>
                         </div>
                         <div class="settings-group">
                             <label for="clientSecret">Spotify Client Secret</label>
-                            <div class="input-with-button">
+                            <div class="input-with-button input-container">
                                 <input type="password" id="clientSecret" placeholder="Enter your Spotify Client Secret">
+                                <button class="clear-btn hidden">&times;</button>
                                 <button id="toggle-secret-btn">Show</button>
                             </div>
                         </div>
@@ -274,13 +287,6 @@
                         <span class="slider round"></span>
                     </label>
                 </div>
-                <div class="settings-group toggle-switch-container">
-                    <label for="embedMetadata">Embed Metadata & Album Art (slower)</label>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="embedMetadata" checked>
-                        <span class="slider round"></span>
-                    </label>
-                </div>
                  
                 <div class="settings-category">
                     <div class="category-header" id="animations-category-header">
@@ -327,7 +333,10 @@
                             </div>
                         </div>
                         <div class="playlist-search-container">
-                            <input type="text" id="playlist-search-input-playlists" placeholder="Search playlists...">
+                            <div class="input-container">
+                                <input type="text" id="playlist-search-input-playlists" placeholder="Search playlists...">
+                                <button class="clear-btn hidden">&times;</button>
+                            </div>
                         </div>
                         <div id="playlists-container" class="panel-list">
                             <div id="favorite-playlists-container" class="hidden">
@@ -348,11 +357,14 @@
                             <span id="current-playlist-track-count">0 tracks</span>
                         </div>
                         <div class="playlist-search-bar">
-        <input type="text" id="playlist-search-input" placeholder="Search songs..." />
-        <button id="playlist-search-btn" title="Search">
-            🔍
-        </button>
-    </div>
+                            <div class="input-container">
+                                <input type="text" id="playlist-search-input" placeholder="Search songs..." />
+                                <button class="clear-btn hidden">&times;</button>
+                            </div>
+                            <button id="playlist-search-btn" title="Search">
+                                🔍
+                            </button>
+                        </div>
                         <div id="playlist-container" class="panel-list">
                             <!-- Tracks will be loaded here -->
                         </div>
@@ -372,15 +384,26 @@
                         <span id="total-duration">0:00</span>
                     </div>
                     <div class="player-buttons-wrapper">
-                        <button id="shuffle-btn" class="shuffle-btn" title="Shuffle">
-                            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="16 3 21 3 21 8"></polyline>
-                                <line x1="4" y1="20" x2="21" y2="3"></line>
-                                <polyline points="21 16 21 21 16 21"></polyline>
-                                <line x1="15" y1="15" x2="21" y2="21"></line>
-                                <line x1="4" y1="4" x2="11" y2="11"></line>
-                            </svg>
-                        </button>
+                        <div class="left-controls">
+                            <button id="shuffle-btn" class="shuffle-btn" title="Shuffle">
+                                <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="16 3 21 3 21 8"></polyline>
+                                    <line x1="4" y1="20" x2="21" y2="3"></line>
+                                    <polyline points="21 16 21 21 16 21"></polyline>
+                                    <line x1="15" y1="15" x2="21" y2="21"></line>
+                                    <line x1="4" y1="4" x2="11" y2="11"></line>
+                                </svg>
+                            </button>
+                            <button id="repeat-btn" class="shuffle-btn" title="Repeat Off">
+                                <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="17 1 21 5 17 9"></polyline>
+                                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                                    <polyline points="7 23 3 19 7 15"></polyline>
+                                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                                </svg>
+                            </button>
+                            <span id="repeat-status-text"></span>
+                        </div>
                         <div class="main-controls">
                             <button id="prev-btn" title="Previous">
                                 <svg class="player-icon" viewBox="0 0 24 24"><rect class="icon-bg" width="24" height="24" rx="4"/><polygon class="icon-fg" points="19 5 19 19 12 12"/><polygon class="icon-fg" points="12 5 12 19 5 12"/></svg>

@@ -293,6 +293,48 @@ textarea {
     box-sizing: border-box;
 }
 
+.input-container {
+    position: relative;
+    display: flex;
+    flex-grow: 1;
+}
+
+.input-container textarea,
+.input-container input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.clear-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    z-index: 2;
+}
+
+.clear-btn:hover {
+    color: var(--text-primary);
+    background-color: transparent;
+}
+
+/* Adjust clear button position for textareas */
+.input-container textarea + .clear-btn {
+    top: 15px;
+}
+
+/* Adjust for input-with-button */
+.input-with-button .clear-btn {
+    right: 55px; /* Make space for the other button */
+}
+
 button {
     background-color: var(--accent-primary);
     color: var(--accent-text-color, #fff); /* MODIFIED */
@@ -1185,6 +1227,20 @@ body.hide-search-bars .playlist-search-bar {
     position: relative;
 }
 
+.left-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#repeat-status-text {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    width: 40px; /* Prevents layout shift */
+    text-align: left;
+}
+
 .main-controls {
     display: flex;
     gap: 15px;
@@ -1280,6 +1336,15 @@ body.hide-search-bars .playlist-search-bar {
     color: var(--accent-primary);
 }
 
+.repeat-btn.active-queue {
+    color: var(--accent-primary);
+}
+
+.repeat-btn.active-single {
+    color: var(--accent-primary);
+    /* You could add another visual indicator, like a small dot or different icon */
+}
+
 .playlist-search-container {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-color);
@@ -1301,6 +1366,7 @@ body.hide-search-bars .playlist-search-bar {
     align-items: center;
     gap: 6px;
     padding: 8px 12px 0 12px;
+    flex-grow: 1;
 }
 
 #playlist-search-input {
