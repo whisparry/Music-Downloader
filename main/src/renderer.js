@@ -174,6 +174,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let toastTimer = null;
     let notificationHistory = [];
     let fadeInterval = null;
+    let isAutoFadingOut = false;
     let trackSearchQuery = '';
     let playlistSearchQuery = '';
     let lastVolume = 1; // For mute/unmute functionality
@@ -1054,7 +1055,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
         audioPlayer.addEventListener('timeupdate', updateProgressBar);
         audioPlayer.addEventListener('loadedmetadata', updateTotalDuration);
-        audioPlayer.addEventListener('ended', playNextTrack);
+        audioPlayer.addEventListener('ended', () => {
+            if (!isAutoFadingOut) {
+                playNextTrack();
+            }
+            isAutoFadingOut = false;
+        });
         progressBarContainer.addEventListener('click', seek);
         playPauseBtn.addEventListener('click', togglePlayPause);
         prevBtn.addEventListener('click', playPreviousTrack);
@@ -1111,6 +1117,12 @@ window.addEventListener('DOMContentLoaded', () => {
         if (duration) {
             progressBar.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
+
+            const fadeDurationSeconds = parseFloat(songFadingDurationSlider.value);
+            if (enableSongFadingInput.checked && !isAutoFadingOut && duration > fadeDurationSeconds && (duration - currentTime) <= fadeDurationSeconds) {
+                isAutoFadingOut = true;
+                playNextTrack();
+            }
         }
     }
 
@@ -1424,6 +1436,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (index < 0 || index >= playlist.length || !playlist[index].path) return;
 
         const startPlayback = () => {
+            isAutoFadingOut = false; // Reset fade flag
             currentTrackIndex = index;
             const track = playlist[index];
             audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
@@ -1593,6 +1606,7 @@ window.addEventListener('DOMContentLoaded', () => {
         progressBar.style.width = '0%';
         currentTimeEl.textContent = '0:00';
         totalDurationEl.textContent = '0:00';
+        isAutoFadingOut = false;
     }
 
     // --- Global Media Key Listeners ---
