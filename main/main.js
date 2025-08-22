@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, Tray, Menu, globalShortcut, Notification } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -213,6 +213,14 @@ app.whenReady().then(() => {
     globalShortcut.register('MediaPreviousTrack', () => {
         mainWindow.webContents.send('media-key-prev');
     });
+
+    // Start periodic update checks
+    if (!isDev) {
+        setInterval(() => {
+            log.info('[AutoUpdater] Performing periodic check for updates.');
+            autoUpdater.checkForUpdates();
+        }, 3 * 60 * 1000); // 3 minutes
+    }
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -933,6 +941,13 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
     log.info('Update available.', info);
+    if (Notification.isSupported()) {
+        new Notification({
+            title: 'SoundLink',
+            body: 'New update available!',
+            icon: trayIconPath
+        }).show();
+    }
     mainWindow.webContents.send('update-available');
 });
 
