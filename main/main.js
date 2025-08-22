@@ -165,6 +165,21 @@ const spotifyApi = new SpotifyWebApi({
     clientSecret: config.spotify?.clientSecret,
 });
 
+// --- SINGLE INSTANCE LOCK ---
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        // Someone tried to run a second instance, we should focus our window.
+        if (mainWindow) {
+            if (!mainWindow.isVisible()) mainWindow.show();
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
+    });
+
 // --- MAIN WINDOW CREATION ---
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -1002,3 +1017,4 @@ app.on('window-all-closed', () => {
     }
     app.quit();
 });
+}
