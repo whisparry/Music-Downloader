@@ -1120,6 +1120,57 @@ body.hide-search-bars .playlist-search-bar {
     box-sizing: border-box;
 }
 
+/* Playlist Management Track Item Styles */
+.pm-track-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    margin: 2px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+}
+
+.pm-track-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.pm-track-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pm-track-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: 15px;
+    opacity: 0; /* Hide by default */
+    transition: opacity 0.2s ease-in-out;
+}
+
+.pm-track-item:hover .pm-track-actions {
+    opacity: 1; /* Show on hover */
+}
+
+.pm-action-btn {
+    padding: 5px 12px;
+    font-size: 13px;
+    border-radius: 5px;
+    margin: 0;
+}
+
+.pm-delete-btn {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.pm-delete-btn:hover {
+    background-color: var(--danger-primary);
+    color: var(--accent-text-color);
+}
+
 .player-controls {
     flex-shrink: 0;
     width: 100%;

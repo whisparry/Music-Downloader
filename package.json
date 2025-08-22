@@ -1,6 +1,6 @@
 {
   "name": "downloader-app",
-  "version": "5.5.13",
+  "version": "5.8.2",
   "description": "Desktop app to download from Spotify and YouTube.",
   "main": "main/main.js",
   "scripts": {
