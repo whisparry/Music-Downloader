@@ -1046,6 +1046,15 @@ body.hide-search-bars .playlist-search-bar {
     overflow: hidden; /* Add overflow hidden to the container */
 }
 
+.playlist-list-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.playlist-list-item.active {
+    background-color: var(--accent-primary);
+    color: var(--accent-text-color, #fff);
+}
+
 .playlist-add-btn {
     background: none;
     border: 1px solid var(--border-color);
