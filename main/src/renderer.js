@@ -43,6 +43,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const updateMessage = document.getElementById('update-message');
     const restartBtn = document.getElementById('restart-btn');
 
+    // Toast Notification elements
+    const toastNotification = document.getElementById('toast-notification');
+    const toastIcon = document.getElementById('toast-icon');
+    const toastTitle = document.getElementById('toast-title');
+    const toastMessage = document.getElementById('toast-message');
+    const toastCloseBtn = document.getElementById('toast-close-btn');
+
     // Settings elements
     const themeGridContainer = document.getElementById('theme-grid');
     const favoriteThemeGrid = document.getElementById('favorite-theme-grid');
@@ -154,6 +161,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let pmSelectedPlaylistPath = null;
     let trackToMove = null; // { path: '...', name: '...' }
     let draggedTrackIndex = null;
+    let toastTimer = null;
     let trackSearchQuery = '';
     let playlistSearchQuery = '';
     let lastVolume = 1; // For mute/unmute functionality
@@ -209,6 +217,34 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     initializeClearButtons();
+
+    // --- Toast Notification Logic ---
+    function showNotification(type, title, message) {
+        if (toastTimer) {
+            clearTimeout(toastTimer);
+        }
+
+        toastTitle.textContent = title;
+        toastMessage.textContent = message;
+
+        toastNotification.className = 'toast-notification'; // Reset
+        toastNotification.classList.add(type); // 'success', 'info', 'error'
+
+        if (type === 'success') toastIcon.innerHTML = '✓';
+        else if (type === 'error') toastIcon.innerHTML = '✗';
+        else toastIcon.innerHTML = 'ℹ️';
+
+        toastNotification.classList.remove('hidden');
+
+        toastTimer = setTimeout(() => {
+            toastNotification.classList.add('hidden');
+        }, 5000);
+    }
+
+    toastCloseBtn.addEventListener('click', () => {
+        if (toastTimer) clearTimeout(toastTimer);
+        toastNotification.classList.add('hidden');
+    });
 
     // --- Loader Functions ---
     function showLoader() {
@@ -448,6 +484,7 @@ window.addEventListener('DOMContentLoaded', () => {
     async function showView(viewToShow, btnToActivate) {
         if (settingsView.classList.contains('active-view') || advancedSettingsView.classList.contains('active-view')) {
             await saveSettings();
+            showNotification('success', 'Settings Saved', 'Your changes have been applied.');
         }
         allViews.forEach(view => view.classList.remove('active-view'));
         viewToShow.classList.add('active-view');
@@ -478,6 +515,7 @@ window.addEventListener('DOMContentLoaded', () => {
         advancedActionStatus.textContent = 'Checking for updates...';
         const result = await window.electronAPI.updateYtdlp();
         advancedActionStatus.textContent = result;
+        showNotification('info', 'yt-dlp Update', result);
     });
 
     clearCacheBtn.addEventListener('click', async () => {
@@ -485,8 +523,10 @@ window.addEventListener('DOMContentLoaded', () => {
         const result = await window.electronAPI.clearLinkCache();
         if (result.success) {
             advancedActionStatus.textContent = result.message;
+            showNotification('success', 'Cache Cleared', result.message);
         } else {
             advancedActionStatus.textContent = `Error: ${result.error}`;
+            showNotification('error', 'Cache Error', result.error);
         }
         setTimeout(() => {
             advancedActionStatus.textContent = '';
@@ -562,6 +602,7 @@ window.addEventListener('DOMContentLoaded', () => {
         createNewPlaylistBtnPm.addEventListener('click', async () => {
             const result = await window.electronAPI.createNewPlaylist();
             if (result.success) {
+                showNotification('success', 'Playlist Created', `"${result.newPlaylist.name}" is ready to be renamed.`);
                 // Refresh the list to show the new playlist
                 await pmRenderPlaylists();
                 if (isPlayerInitialized) {
@@ -580,11 +621,13 @@ window.addEventListener('DOMContentLoaded', () => {
                         createInlineEditor(nameSpan, result.newPlaylist.name, async (newName) => {
                             const renameResult = await window.electronAPI.renamePlaylist({ oldPath: result.newPlaylist.path, newName });
                             if (renameResult.success) {
+                                showNotification('success', 'Playlist Renamed', `Renamed to "${newName}".`);
                                 // Final refresh after rename
                                 pmRenderPlaylists();
                                 if (isPlayerInitialized) loadAndRenderPlaylists();
                             } else {
                                 alert(`Error renaming playlist: ${renameResult.error}`);
+                                showNotification('error', 'Rename Failed', renameResult.error);
                                 pmRenderPlaylists(); // Refresh to show original name
                             }
                         });
@@ -592,6 +635,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 alert(`Error creating playlist: ${result.error}`);
+                showNotification('error', 'Creation Failed', result.error);
             }
         });
 
@@ -605,11 +649,13 @@ window.addEventListener('DOMContentLoaded', () => {
                     destinationPlaylistPath: destinationPlaylistPath
                 });
                 if (result.success) {
+                    showNotification('success', 'Track Moved', `Moved "${trackToMove.name}" successfully.`);
                     // Refresh both player and management views if they are initialized
                     if (isPlayerInitialized) loadAndRenderPlaylists();
                     pmLoadAndRenderTracks(pmSelectedPlaylistPath);
                 } else {
                     alert(`Error moving track: ${result.error}`);
+                    showNotification('error', 'Move Failed', result.error);
                 }
             }
             moveTrackModal.classList.add('hidden');
@@ -663,6 +709,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (confirmDelete) {
                     const result = await window.electronAPI.deletePlaylist(p.path);
                     if (result.success) {
+                        showNotification('success', 'Playlist Deleted', `"${p.name}" was permanently deleted.`);
                         // If the deleted playlist was the one being viewed, clear the tracks panel
                         if (pmSelectedPlaylistPath === p.path) {
                             pmSelectedPlaylistPath = null;
@@ -676,6 +723,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
                     } else {
                         alert(`Error deleting playlist: ${result.error}`);
+                        showNotification('error', 'Delete Failed', result.error);
                     }
                 }
             });
@@ -684,6 +732,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 createInlineEditor(nameSpan, p.name, async (newName) => {
                     const result = await window.electronAPI.renamePlaylist({ oldPath: p.path, newName });
                     if (result.success) {
+                        showNotification('success', 'Playlist Renamed', `Renamed to "${newName}".`);
                         if (favoritePlaylists.includes(p.path)) {
                             favoritePlaylists = favoritePlaylists.map(favPath => favPath === p.path ? result.newPath : favPath);
                             saveSettings();
@@ -697,6 +746,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
                     } else {
                         alert(`Error renaming playlist: ${result.error}`);
+                        showNotification('error', 'Rename Failed', result.error);
                         item.replaceWith(nameSpan); // Restore original on failure
                     }
                 });
@@ -758,11 +808,13 @@ window.addEventListener('DOMContentLoaded', () => {
                 if (confirmDelete) {
                     const result = await window.electronAPI.deleteTrack(track.path);
                     if (result.success) {
+                        showNotification('success', 'Track Deleted', `"${track.name}" was permanently deleted.`);
                         // Refresh both player and management views if they are initialized
                         if (isPlayerInitialized) loadAndRenderPlaylists();
                         pmLoadAndRenderTracks(playlistPath);
                     } else {
                         alert(`Error deleting track: ${result.error}`);
+                        showNotification('error', 'Delete Failed', result.error);
                     }
                 }
             });
@@ -771,12 +823,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 createInlineEditor(nameSpan, trackNameWithoutExt, async (newName) => {
                     const result = await window.electronAPI.renameTrack({ oldPath: track.path, newName });
                     if (result.success) {
+                        showNotification('success', 'Track Renamed', `Renamed to "${newName}".`);
                         pmLoadAndRenderTracks(playlistPath);
                         if (isPlayerInitialized && activeQueuePaths.has(playlistPath)) {
                             loadQueueTracks();
                         }
                     } else {
                         alert(`Error renaming track: ${result.error}`);
+                        showNotification('error', 'Rename Failed', result.error);
                         item.replaceWith(nameSpan); // Restore original on failure
                     }
                 });
@@ -838,6 +892,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (confirmed) {
             await window.electronAPI.resetStats();
             initializeStats(); // Refresh the view
+            showNotification('success', 'Statistics Reset', 'All stats have been cleared.');
         }
     });
 
@@ -1091,8 +1146,10 @@ window.addEventListener('DOMContentLoaded', () => {
                         const path = p.path;
                         if (activeQueuePaths.has(path)) {
                             activeQueuePaths.delete(path);
+                            showNotification('info', 'Playlist Removed', `"${p.name}" removed from mix.`);
                         } else {
                             activeQueuePaths.add(path);
+                            showNotification('info', 'Playlist Added', `"${p.name}" added to mix.`);
                         }
     
                         // If the main active playlist was removed, pick a new one from the queue.
@@ -1426,6 +1483,7 @@ window.addEventListener('DOMContentLoaded', () => {
         appendConsoleMessage(result);
         createPlaylistBtn.classList.add('hidden');
         if (!result.startsWith('Error:')) {
+            showNotification('success', 'Playlist Created', 'Playlist created from last download session.');
             if (isPlayerInitialized) loadAndRenderPlaylists();
         }
     });
@@ -1461,6 +1519,7 @@ window.addEventListener('DOMContentLoaded', () => {
         root.style.setProperty('--theme-fade-speed', `${themeFadeSlider.value}s`);
         populateThemeGrid();
         saveSettings();
+        showNotification('success', 'Settings Reset', 'All settings have been restored to their defaults.');
     });
 
     // --- Help View Logic ---
