@@ -144,6 +144,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const hideTrackNumbersInput = document.getElementById('hideTrackNumbers');
     const normalizeVolumeInput = document.getElementById('normalizeVolume');
     const hideSearchBarsInput = document.getElementById('hideSearchBars');
+    const enableSongFadingInput = document.getElementById('enableSongFading');
     const updateYtdlpBtn = document.getElementById('update-ytdlp-btn');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
 
@@ -169,6 +170,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let draggedTrackIndex = null;
     let toastTimer = null;
     let notificationHistory = [];
+    let fadeInterval = null;
     let trackSearchQuery = '';
     let playlistSearchQuery = '';
     let lastVolume = 1; // For mute/unmute functionality
@@ -461,6 +463,7 @@ window.addEventListener('DOMContentLoaded', () => {
             hideTrackNumbers: hideTrackNumbersInput.checked,
             normalizeVolume: normalizeVolumeInput.checked,
             hideSearchBars: hideSearchBarsInput.checked,
+            enableSongFading: enableSongFadingInput.checked,
         };
         await window.electronAPI.saveSettings(newSettings);
     };
@@ -515,9 +518,10 @@ window.addEventListener('DOMContentLoaded', () => {
             normalizeVolumeInput.checked = currentConfig.normalizeVolume || false;
             hideSearchBarsInput.checked = currentConfig.hideSearchBars || false;
             body.classList.toggle('hide-search-bars', hideSearchBarsInput.checked);
+            enableSongFadingInput.checked = currentConfig.enableSongFading || false;
         }
         
-        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput].forEach(input => {
+        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, enableSongFadingInput].forEach(input => {
             input.addEventListener('change', saveSettings);
         });
 
@@ -1050,6 +1054,36 @@ window.addEventListener('DOMContentLoaded', () => {
         loadAndRenderPlaylists();
     }
 
+    function fadeAudio(targetVolume, duration, onComplete) {
+        if (fadeInterval) {
+            clearInterval(fadeInterval);
+        }
+
+        const startVolume = audioPlayer.volume;
+        const steps = 50;
+        const stepDuration = duration / steps;
+        const volumeStep = (targetVolume - startVolume) / steps;
+
+        // If there's nothing to do, just run the callback
+        if (volumeStep === 0) {
+            if (onComplete) onComplete();
+            return;
+        }
+
+        fadeInterval = setInterval(() => {
+            let newVolume = audioPlayer.volume + volumeStep;
+
+            if ((volumeStep > 0 && newVolume >= targetVolume) || (volumeStep < 0 && newVolume <= targetVolume)) {
+                newVolume = targetVolume;
+                clearInterval(fadeInterval);
+                fadeInterval = null;
+                if (onComplete) onComplete();
+            }
+            // Ensure volume stays within the valid 0.0 to 1.0 range
+            audioPlayer.volume = Math.max(0, Math.min(1, newVolume));
+        }, stepDuration);
+    }
+
     function formatTime(seconds) {
         const minutes = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
@@ -1372,29 +1406,58 @@ window.addEventListener('DOMContentLoaded', () => {
 
     function playTrack(index) {
         if (index < 0 || index >= playlist.length || !playlist[index].path) return;
-        currentTrackIndex = index;
-        const track = playlist[index];
-        audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
-        audioPlayer.play();
-        // FIX: Also remove the numbered prefix from the "Now Playing" display.
-        nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
-        playIcon.classList.add('hidden');
-        pauseIcon.classList.remove('hidden');
-        document.querySelectorAll('.playlist-item').forEach(item => {
-            item.classList.toggle('active', parseInt(item.dataset.index) === index);
-        });
+
+        const startPlayback = () => {
+            currentTrackIndex = index;
+            const track = playlist[index];
+            audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
+            nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
+            playIcon.classList.add('hidden');
+            pauseIcon.classList.remove('hidden');
+            document.querySelectorAll('.playlist-item').forEach(item => {
+                item.classList.toggle('active', parseInt(item.dataset.index) === index);
+            });
+
+            if (enableSongFadingInput.checked) {
+                audioPlayer.volume = 0;
+                audioPlayer.play();
+                fadeAudio(lastVolume, 500);
+            } else {
+                audioPlayer.volume = lastVolume;
+                audioPlayer.play();
+            }
+        };
+
+        if (enableSongFadingInput.checked && !audioPlayer.paused) {
+            fadeAudio(0, 500, startPlayback);
+        } else {
+            startPlayback();
+        }
     }
 
     function togglePlayPause() {
         if (!audioPlayer.src) return;
+
+        const useFading = enableSongFadingInput.checked;
+
         if (audioPlayer.paused) {
-            audioPlayer.play();
             playIcon.classList.add('hidden');
             pauseIcon.classList.remove('hidden');
+            if (useFading) {
+                audioPlayer.volume = 0;
+                audioPlayer.play();
+                fadeAudio(lastVolume, 500);
+            } else {
+                audioPlayer.play();
+            }
         } else {
-            audioPlayer.pause();
             playIcon.classList.remove('hidden');
             pauseIcon.classList.add('hidden');
+            if (useFading) {
+                fadeAudio(0, 500, () => audioPlayer.pause());
+            } else {
+                audioPlayer.pause();
+            }
         }
     }
 
@@ -1610,6 +1673,7 @@ window.addEventListener('DOMContentLoaded', () => {
         themeFadeSlider.value = defaultSettings.themeFadeSpeed || 0.3;
         themeFadeValue.textContent = `${themeFadeSlider.value}s`;
         root.style.setProperty('--theme-fade-speed', `${themeFadeSlider.value}s`);
+        enableSongFadingInput.checked = defaultSettings.enableSongFading || false;
         populateThemeGrid();
         saveSettings();
         showNotification('success', 'Settings Reset', 'All settings have been restored to their defaults.');
