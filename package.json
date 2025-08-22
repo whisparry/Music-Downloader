@@ -1,6 +1,6 @@
 {
   "name": "downloader-app",
-  "version": "5.10.0",
+  "version": "5.10.1",
   "description": "Desktop app to download from Spotify and YouTube.",
   "main": "main/main.js",
   "scripts": {
@@ -64,7 +64,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Music-Downloader-Setup-${version}.${ext}"
     }
   }
 }
