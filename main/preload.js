@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onUpdateStatus: (callback) => ipcRenderer.on('update-status', (event, ...args) => callback(...args)),
     onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (event, ...args) => callback(...args)),
     onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (event, ...args) => callback(...args)),
+    onShowCheckingForUpdateNotification: (callback) => ipcRenderer.on('show-checking-for-update-notification', callback),
     onMediaKeyPlayPause: (callback) => ipcRenderer.on('media-key-play-pause', callback),
     onMediaKeyNext: (callback) => ipcRenderer.on('media-key-next', callback),
     onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback),

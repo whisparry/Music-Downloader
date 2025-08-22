@@ -1622,6 +1622,10 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Auto Updater Logic ---
+    window.electronAPI.onShowCheckingForUpdateNotification(() => {
+        showNotification('info', 'Auto-Updater', 'Checking for Updates!');
+    });
+
     window.electronAPI.onUpdateAvailable(() => {
         updateNotification.classList.remove('hidden');
         updateMessage.textContent = 'A new update is available. Downloading now...';
