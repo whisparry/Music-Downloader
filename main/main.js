@@ -99,6 +99,7 @@ function loadStats() {
                 totalLinksProcessed: 0,
                 spotifyLinksProcessed: 0,
                 youtubeLinksProcessed: 0,
+                notificationsReceived: 0,
             };
             fs.writeFileSync(statsPath, JSON.stringify(stats, null, 4));
         }
@@ -299,6 +300,11 @@ app.whenReady().then(() => {
 
     ipcMain.handle('get-stats', () => stats);
 
+    ipcMain.on('increment-notification-stat', () => {
+        stats.notificationsReceived = (stats.notificationsReceived || 0) + 1;
+        saveStats();
+    });
+
     ipcMain.handle('reset-stats', () => {
         stats = {
             totalSongsDownloaded: 0,
@@ -308,6 +314,7 @@ app.whenReady().then(() => {
             totalLinksProcessed: 0,
             spotifyLinksProcessed: 0,
             youtubeLinksProcessed: 0,
+            notificationsReceived: 0,
         };
         saveStats();
         return stats;

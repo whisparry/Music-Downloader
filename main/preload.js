@@ -33,6 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (event, ...args) => callback(...args)),
     onMediaKeyPlayPause: (callback) => ipcRenderer.on('media-key-play-pause', callback),
     onMediaKeyNext: (callback) => ipcRenderer.on('media-key-next', callback),
-    onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback)
+    onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback),
+    incrementNotificationStat: () => ipcRenderer.send('increment-notification-stat')
     }
   );

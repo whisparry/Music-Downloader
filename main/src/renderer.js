@@ -123,6 +123,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const spotifyLinksStat = document.getElementById('spotify-links-stat');
     const youtubeLinksStat = document.getElementById('youtube-links-stat');
     const successRateStat = document.getElementById('success-rate-stat');
+    const notificationsReceivedStat = document.getElementById('notifications-received-stat');
     const resetStatsBtn = document.getElementById('reset-stats-btn');
 
     // Category elements
@@ -299,6 +300,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- Toast Notification Logic ---
     function showNotification(type, title, message) {
+        // Increment stat
+        window.electronAPI.incrementNotificationStat();
+
         // Add to history
         const timestamp = new Date().toISOString();
         notificationHistory.unshift({ type, title, message, timestamp });
@@ -972,6 +976,7 @@ window.addEventListener('DOMContentLoaded', () => {
             spotifyLinksStat.textContent = stats.spotifyLinksProcessed || 0;
             youtubeLinksStat.textContent = stats.youtubeLinksProcessed || 0;
             successRateStat.textContent = `${successRate.toFixed(1)}%`;
+            notificationsReceivedStat.textContent = stats.notificationsReceived || 0;
         }
     }
 
