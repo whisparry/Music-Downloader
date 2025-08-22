@@ -12,6 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const playlistManagementBtn = document.getElementById('playlist-management-btn');
     const consoleBtn = document.getElementById('console-btn');
     const statsBtn = document.getElementById('stats-btn');
+    const notificationHistoryBtn = document.getElementById('notification-history-btn');
     const helpBtn = document.getElementById('help-btn');
     const createPlaylistBtn = document.getElementById('create-playlist-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
@@ -28,6 +29,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const playlistManagementView = document.getElementById('playlist-management-view');
     const consoleView = document.getElementById('console-view');
     const statsView = document.getElementById('stats-view');
+    const notificationHistoryView = document.getElementById('notification-history-view');
     const helpView = document.getElementById('help-view');
 
     const downloadBtn = document.getElementById('download-btn');
@@ -49,6 +51,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const toastTitle = document.getElementById('toast-title');
     const toastMessage = document.getElementById('toast-message');
     const toastCloseBtn = document.getElementById('toast-close-btn');
+
+    // Notification History elements
+    const notificationHistoryContainer = document.getElementById('notification-history-container');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
 
     // Settings elements
     const themeGridContainer = document.getElementById('theme-grid');
@@ -161,6 +167,7 @@ window.addEventListener('DOMContentLoaded', () => {
     let trackToMove = null; // { path: '...', name: '...' }
     let draggedTrackIndex = null;
     let toastTimer = null;
+    let notificationHistory = [];
     let trackSearchQuery = '';
     let playlistSearchQuery = '';
     let lastVolume = 1; // For mute/unmute functionality
@@ -217,8 +224,93 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     initializeClearButtons();
 
+    // --- Notification History Logic ---
+    function saveNotificationHistory() {
+        try {
+            localStorage.setItem('notificationHistory', JSON.stringify(notificationHistory));
+        } catch (e) {
+            console.error("Failed to save notification history:", e);
+        }
+    }
+
+    function loadNotificationHistory() {
+        try {
+            const storedHistory = localStorage.getItem('notificationHistory');
+            if (storedHistory) {
+                notificationHistory = JSON.parse(storedHistory);
+            }
+        } catch (e) {
+            console.error("Failed to load notification history:", e);
+            notificationHistory = [];
+        }
+    }
+
+    function renderNotificationHistory() {
+        if (!notificationHistoryContainer) return;
+        notificationHistoryContainer.innerHTML = '';
+
+        if (notificationHistory.length === 0) {
+            notificationHistoryContainer.innerHTML = `<div class="empty-playlist-message">No notifications yet.</div>`;
+            return;
+        }
+
+        notificationHistory.forEach(notif => {
+            const item = document.createElement('div');
+            item.className = `history-item ${notif.type}`;
+
+            const icon = document.createElement('div');
+            icon.className = 'history-icon';
+            if (notif.type === 'success') icon.innerHTML = '✓';
+            else if (notif.type === 'error') icon.innerHTML = '✗';
+            else icon.innerHTML = 'ℹ️';
+
+            const content = document.createElement('div');
+            content.className = 'history-content';
+
+            const title = document.createElement('p');
+            title.className = 'history-title';
+            title.textContent = notif.title;
+
+            const message = document.createElement('p');
+            message.className = 'history-message';
+            message.textContent = notif.message;
+
+            const timestamp = document.createElement('div');
+            timestamp.className = 'history-timestamp';
+            timestamp.textContent = new Date(notif.timestamp).toLocaleTimeString();
+
+            content.appendChild(title);
+            content.appendChild(message);
+            item.appendChild(icon);
+            item.appendChild(content);
+            item.appendChild(timestamp);
+            notificationHistoryContainer.appendChild(item);
+        });
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to clear all notification history?')) {
+            notificationHistory = [];
+            saveNotificationHistory();
+            renderNotificationHistory();
+            showNotification('info', 'History Cleared', 'Your notification history has been cleared.');
+        }
+    });
+
     // --- Toast Notification Logic ---
     function showNotification(type, title, message) {
+        // Add to history
+        const timestamp = new Date().toISOString();
+        notificationHistory.unshift({ type, title, message, timestamp });
+        if (notificationHistory.length > 100) { // Keep history capped at 100
+            notificationHistory.pop();
+        }
+        saveNotificationHistory();
+        if (notificationHistoryView.classList.contains('active-view')) {
+            renderNotificationHistory();
+        }
+
+        // Show toast
         if (toastTimer) {
             clearTimeout(toastTimer);
         }
@@ -477,8 +569,8 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Tab Switching Logic ---
-    const allViews = [homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, statsView, consoleView, helpView];
-    const allNavBtns = [homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, statsBtn, consoleBtn, helpBtn];
+    const allViews = [homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, statsView, notificationHistoryView, consoleView, helpView];
+    const allNavBtns = [homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, statsBtn, notificationHistoryBtn, consoleBtn, helpBtn];
 
     async function showView(viewToShow, btnToActivate) {
         if (settingsView.classList.contains('active-view') || advancedSettingsView.classList.contains('active-view')) {
@@ -506,6 +598,10 @@ window.addEventListener('DOMContentLoaded', () => {
     statsBtn.addEventListener('click', () => {
         showView(statsView, statsBtn);
         initializeStats();
+    });
+    notificationHistoryBtn.addEventListener('click', () => {
+        showView(notificationHistoryView, notificationHistoryBtn);
+        renderNotificationHistory();
     });
     helpBtn.addEventListener('click', () => showView(helpView, helpBtn));
 
@@ -1535,4 +1631,7 @@ window.addEventListener('DOMContentLoaded', () => {
     restartBtn.addEventListener('click', () => {
         window.electronAPI.restartApp();
     });
+
+    // --- Initial Load for History ---
+    loadNotificationHistory();
 });
