@@ -1468,14 +1468,3 @@ input:checked + .slider:before {
 .slider.round:before {
     border-radius: 50%;
 }
-
-.update-status-text {
-    margin-top: 0;
-    color: var(--text-secondary);
-    font-style: italic;
-    font-size: 14px;
-    min-height: 1.5em; /* Reserve space to prevent layout shift */
-    word-wrap: break-word;
-    text-align: center;
-    max-width: 600px;
-}

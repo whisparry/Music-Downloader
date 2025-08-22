@@ -139,7 +139,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const hideSearchBarsInput = document.getElementById('hideSearchBars');
     const updateYtdlpBtn = document.getElementById('update-ytdlp-btn');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
-    const advancedActionStatus = document.getElementById('advanced-action-status');
 
     // Help elements
     const spotifyLink = document.getElementById('spotify-link');
@@ -512,25 +511,17 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- yt-dlp Updater ---
     updateYtdlpBtn.addEventListener('click', async () => {
-        advancedActionStatus.textContent = 'Checking for updates...';
         const result = await window.electronAPI.updateYtdlp();
-        advancedActionStatus.textContent = result;
         showNotification('info', 'yt-dlp Update', result);
     });
 
     clearCacheBtn.addEventListener('click', async () => {
-        advancedActionStatus.textContent = 'Clearing cache...';
         const result = await window.electronAPI.clearLinkCache();
         if (result.success) {
-            advancedActionStatus.textContent = result.message;
             showNotification('success', 'Cache Cleared', result.message);
         } else {
-            advancedActionStatus.textContent = `Error: ${result.error}`;
             showNotification('error', 'Cache Error', result.error);
         }
-        setTimeout(() => {
-            advancedActionStatus.textContent = '';
-        }, 4000);
     });
 
     // --- Category Collapse Logic ---
