@@ -375,7 +375,13 @@ app.whenReady().then(() => {
             proc.stderr.on('data', (data) => output += data.toString());
             proc.on('close', (code) => {
                 if (code === 0) {
-                    resolve(output || 'Update check completed.');
+                    if (output.includes('is up to date')) {
+                        resolve('Up to date!');
+                    } else if (output.includes('Updated yt-dlp to')) {
+                        resolve('Updated successfully!');
+                    } else {
+                        resolve('Update check completed.'); // Fallback for unexpected output
+                    }
                 } else {
                     resolve(`Update failed with exit code ${code}:\n${output}`);
                 }

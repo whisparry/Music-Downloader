@@ -511,6 +511,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- yt-dlp Updater ---
     updateYtdlpBtn.addEventListener('click', async () => {
+        showNotification('info', 'yt-dlp Update', 'Checking for updates...');
         const result = await window.electronAPI.updateYtdlp();
         showNotification('info', 'yt-dlp Update', result);
     });
