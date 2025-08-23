@@ -572,6 +572,7 @@ window.addEventListener('DOMContentLoaded', () => {
         showNotification('info', 'yt-dlp Update', result);
     });
     checkForUpdatesBtn.addEventListener('click', () => {
+        showNotification('info', 'Auto-Updater', 'Checking for updates...');
         window.electronAPI.checkForUpdates();
     });
     clearCacheBtn.addEventListener('click', async () => {
@@ -721,7 +722,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Auto Updater Logic ---
-    window.electronAPI.onShowCheckingForUpdateNotification(() => showNotification('info', 'Auto-Updater', 'Checking for updates...'));
+    window.electronAPI.onShowUpdateNotAvailableNotification(() => showNotification('success', 'Auto-Updater', 'Your application is up to date.'));
     window.electronAPI.onUpdateAvailable(() => {
         updateNotification.classList.remove('hidden');
         updateMessage.textContent = 'A new update is available. Downloading now...';

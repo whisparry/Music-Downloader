@@ -1029,7 +1029,6 @@ app.whenReady().then(() => {
 // --- AUTO UPDATER LOGIC ---
 autoUpdater.on('checking-for-update', () => {
     log.info('Checking for update...');
-    mainWindow.webContents.send('show-checking-for-update-notification');
 });
 
 autoUpdater.on('update-available', (info) => {
@@ -1039,7 +1038,7 @@ autoUpdater.on('update-available', (info) => {
 
 autoUpdater.on('update-not-available', (info) => {
     log.info('Update not available.', info);
-    mainWindow.webContents.send('update-status', '[Updater] Application is up to date.');
+    mainWindow.webContents.send('show-update-not-available-notification');
 });
 
 autoUpdater.on('error', (err) => {
