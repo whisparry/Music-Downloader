@@ -33,7 +33,6 @@ let ytdlpInstanceIndex = 0;
 let lastDownloadedFiles = [];
 let lastPlaylistName = null;
 let isDownloadCancelled = false;
-let isPeriodicCheck = false;
 
 // --- HELPER FUNCTIONS (Pre-Startup) ---
 function findYtdlpExecutables() {
@@ -235,7 +234,6 @@ app.whenReady().then(() => {
     if (!isDev) {
         setInterval(() => {
             log.info('[AutoUpdater] Performing periodic check for updates.');
-            isPeriodicCheck = true;
             autoUpdater.checkForUpdates();
         }, 3 * 60 * 1000); // 3 minutes
     }
@@ -1031,12 +1029,7 @@ app.whenReady().then(() => {
 // --- AUTO UPDATER LOGIC ---
 autoUpdater.on('checking-for-update', () => {
     log.info('Checking for update...');
-    if (isPeriodicCheck) {
-        mainWindow.webContents.send('show-checking-for-update-notification');
-        isPeriodicCheck = false; // Reset flag after use
-    } else {
-        mainWindow.webContents.send('update-status', '[Updater] Checking for new version...');
-    }
+    mainWindow.webContents.send('show-checking-for-update-notification');
 });
 
 autoUpdater.on('update-available', (info) => {
