@@ -349,6 +349,9 @@ export function initializePlayer(newCtx) {
     shuffleBtn.addEventListener('click', toggleShuffle);
     repeatBtn.addEventListener('click', toggleRepeat);
 
+    let isSeeking = false;
+    let wasPlayingBeforeSeek = false;
+
     const handleSeek = (e) => {
         const { duration } = audioPlayer;
         if (!isNaN(duration) && duration > 0) {
@@ -361,15 +364,28 @@ export function initializePlayer(newCtx) {
     };
 
     const onMouseMove = (e) => {
-        handleSeek(e);
+        if (isSeeking) {
+            handleSeek(e);
+        }
     };
 
     const onMouseUp = () => {
+        if (isSeeking) {
+            isSeeking = false;
+            if (wasPlayingBeforeSeek) {
+                audioPlayer.play().catch(error => console.error("Playback failed after seek:", error));
+            }
+        }
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
     };
 
     progressBarContainer.addEventListener('mousedown', (e) => {
+        isSeeking = true;
+        wasPlayingBeforeSeek = !audioPlayer.paused;
+        if (wasPlayingBeforeSeek) {
+            audioPlayer.pause();
+        }
         handleSeek(e); // Seek on initial click
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
