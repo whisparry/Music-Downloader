@@ -603,7 +603,7 @@ app.whenReady().then(() => {
         }
         try {
             await refreshSpotifyToken();
-            const searchLimit = limit && limit >= 5 && limit <= 50 ? limit : 10;
+            const searchLimit = limit && limit >= 1 && limit <= 50 ? limit : 10;
     
             const searchFunctions = {
                 playlist: async () => {
