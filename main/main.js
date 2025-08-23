@@ -11,6 +11,7 @@ const log = require('electron-log');
 // --- CONSTANTS & CONFIG ---
 const supportedExtensions = ['.m4a', '.mp3', '.wav', '.flac', '.ogg', '.webm'];
 app.disableHardwareAcceleration();
+app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 const isDev = !app.isPackaged;
 const assetsPath = isDev ? path.join(__dirname, 'assets') : path.join(process.resourcesPath, 'assets');

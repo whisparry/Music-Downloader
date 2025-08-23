@@ -558,7 +558,13 @@ window.addEventListener('DOMContentLoaded', () => {
     homeBtn.addEventListener('click', () => showView(homeView, homeBtn));
     settingsBtn.addEventListener('click', () => showView(settingsView, settingsBtn));
     advancedSettingsBtn.addEventListener('click', () => showView(advancedSettingsView, advancedSettingsBtn));
-    playerBtn.addEventListener('click', () => { showView(playerView, playerBtn); playerAPI = initializePlayer(context); });
+    playerBtn.addEventListener('click', () => {
+        showView(playerView, playerBtn);
+        if (!state.isPlayerInitialized) {
+            playerAPI = initializePlayer(context);
+            state.isPlayerInitialized = true;
+        }
+    });
     playlistManagementBtn.addEventListener('click', () => { showView(playlistManagementView, playlistManagementBtn); initializePlaylistManagement(context); });
     consoleBtn.addEventListener('click', () => showView(consoleView, consoleBtn));
     statsBtn.addEventListener('click', () => { showView(statsView, statsBtn); initializeStats(); });
