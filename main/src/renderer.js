@@ -643,9 +643,33 @@ window.addEventListener('DOMContentLoaded', () => {
     downloadBtn.addEventListener('click', () => {
         const links = linksInput.value.split('\n').filter(link => link.trim() !== '');
         if (links.length === 0) {
-            appendConsoleMessage('Please enter at least one link.');
+            showNotification('error', 'Input Error', 'Please enter at least one link.');
             return;
         }
+
+        const validLinks = [];
+        const invalidLinks = [];
+        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
+        const spotifyRegex = /^(https?:\/\/)?(open\.)?spotify\.com\/.+$/;
+
+        for (const link of links) {
+            if (youtubeRegex.test(link) || spotifyRegex.test(link)) {
+                validLinks.push(link);
+            } else {
+                invalidLinks.push(link);
+            }
+        }
+
+        if (invalidLinks.length > 0 && validLinks.length > 0) {
+            showNotification('info', 'Invalid Links Skipped', `Some links were invalid and will be ignored.`);
+            linksInput.value = validLinks.join('\n');
+        }
+
+        if (validLinks.length === 0) {
+            showNotification('error', 'No Valid Links', 'None of the provided links were valid Spotify or YouTube links.');
+            return;
+        }
+
         showView(consoleView, consoleBtn);
         downloadBtn.classList.add('hidden');
         linksInput.disabled = true;
@@ -656,7 +680,7 @@ window.addEventListener('DOMContentLoaded', () => {
         downloadProgressContainer.classList.remove('hidden');
         downloadProgressBar.style.width = '0%';
         downloadEta.textContent = 'Estimated time remaining: calculating...';
-        window.electronAPI.startDownload(links);
+        window.electronAPI.startDownload(validLinks);
     });
     cancelBtn.addEventListener('click', () => window.electronAPI.cancelDownload());
     bigCancelBtn.addEventListener('click', () => window.electronAPI.cancelDownload());
