@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onMediaKeyNext: (callback) => ipcRenderer.on('media-key-next', callback),
     onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback),
     onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, ...args) => callback(...args)),
+    getDetailedStats: (statType) => ipcRenderer.invoke('get-detailed-stats', statType),
     incrementNotificationStat: () => ipcRenderer.send('increment-notification-stat')
     }
   );

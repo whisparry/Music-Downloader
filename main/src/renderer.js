@@ -139,6 +139,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const downloadProgressContainer = document.getElementById('download-progress-container');
     const downloadProgressBar = document.getElementById('download-progress-bar');
     const downloadEta = document.getElementById('download-eta');
+    const statsDetailModal = document.getElementById('stats-detail-modal');
+    const statsDetailTitle = document.getElementById('stats-detail-title');
+    const statsDetailContent = document.getElementById('stats-detail-content');
+    const statsDetailCloseBtn = statsDetailModal.querySelector('.modal-close-btn');
 
     // --- STATE & CONTEXT (Centralized) ---
     const state = {
@@ -729,6 +733,46 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Stats Logic ---
+    async function showStatDetails(statType) {
+        const titles = {
+            downloads: 'Recent Downloads',
+            playlists: 'Recently Created Playlists',
+            failures: 'Recent Failures'
+        };
+
+        if (!titles[statType]) return;
+
+        statsDetailTitle.textContent = titles[statType];
+        statsDetailContent.innerHTML = '<div class="spinner" style="margin: 20px auto;"></div>';
+        statsDetailModal.classList.remove('hidden');
+
+        const history = await window.electronAPI.getDetailedStats(statType);
+        statsDetailContent.innerHTML = '';
+
+        if (!history || history.length === 0) {
+            statsDetailContent.innerHTML = `<div class="empty-playlist-message">No history available.</div>`;
+            return;
+        }
+
+        history.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'stats-detail-item';
+            const date = new Date(item.date).toLocaleString();
+            itemEl.innerHTML = `
+                <span class="stats-detail-name" title="${item.name}">${item.name}</span>
+                <span class="stats-detail-date">${date}</span>
+            `;
+            statsDetailContent.appendChild(itemEl);
+        });
+    }
+
+    statsDetailCloseBtn.addEventListener('click', () => statsDetailModal.classList.add('hidden'));
+    statsDetailModal.addEventListener('click', (e) => {
+        if (e.target === statsDetailModal) {
+            statsDetailModal.classList.add('hidden');
+        }
+    });
+
     async function initializeStats() {
         const statsData = await window.electronAPI.getStats();
         if (statsData) {
@@ -740,9 +784,15 @@ window.addEventListener('DOMContentLoaded', () => {
             spotifyLinksStat.textContent = statsData.spotifyLinksProcessed || 0;
             youtubeLinksStat.textContent = statsData.youtubeLinksProcessed || 0;
             notificationsReceivedStat.textContent = statsData.notificationsReceived || 0;
-            const successRate = (statsData.downloadsInitiated > 0) ? ((statsData.totalSongsDownloaded / (statsData.totalSongsDownloaded + statsData.songsFailed)) * 100) : 0;
+            const successRate = (statsData.totalSongsDownloaded + statsData.songsFailed > 0) ? ((statsData.totalSongsDownloaded / (statsData.totalSongsDownloaded + statsData.songsFailed)) * 100) : 0;
             successRateStat.textContent = `${successRate.toFixed(1)}%`;
         }
+        document.querySelectorAll('#stats-view .stat-card').forEach(card => {
+            const statType = card.dataset.stat;
+            if (statType) {
+                card.addEventListener('click', () => showStatDetails(statType));
+            }
+        });
     }
     resetStatsBtn.addEventListener('click', async () => {
         if (confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {

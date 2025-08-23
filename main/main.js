@@ -104,12 +104,19 @@ function loadStats() {
     try {
         if (fs.existsSync(statsPath)) {
             stats = JSON.parse(fs.readFileSync(statsPath, 'utf-8'));
+            // Add new fields if they don't exist for backward compatibility
+            if (!stats.downloadHistory) stats.downloadHistory = [];
+            if (!stats.playlistHistory) stats.playlistHistory = [];
+            if (!stats.failureHistory) stats.failureHistory = [];
         } else {
             stats = {
                 totalSongsDownloaded: 0,
+                downloadHistory: [],
                 playlistsCreated: 0,
+                playlistHistory: [],
                 downloadsInitiated: 0,
                 songsFailed: 0,
+                failureHistory: [],
                 totalLinksProcessed: 0,
                 spotifyLinksProcessed: 0,
                 youtubeLinksProcessed: 0,
@@ -362,9 +369,12 @@ app.whenReady().then(() => {
     ipcMain.handle('reset-stats', () => {
         stats = {
             totalSongsDownloaded: 0,
+            downloadHistory: [],
             playlistsCreated: 0,
+            playlistHistory: [],
             downloadsInitiated: 0,
             songsFailed: 0,
+            failureHistory: [],
             totalLinksProcessed: 0,
             spotifyLinksProcessed: 0,
             youtubeLinksProcessed: 0,
@@ -573,6 +583,9 @@ app.whenReady().then(() => {
         try {
             await fs.promises.mkdir(newPlaylistPath, { recursive: true });
             stats.playlistsCreated = (stats.playlistsCreated || 0) + 1;
+            if (!stats.playlistHistory) stats.playlistHistory = [];
+            stats.playlistHistory.unshift({ name: newPlaylistName, date: new Date().toISOString() });
+            if (stats.playlistHistory.length > 100) stats.playlistHistory.pop();
             saveStats();
             // Return the created playlist info
             return { 
@@ -620,6 +633,19 @@ app.whenReady().then(() => {
         } catch (error) {
             console.error(`Failed to rename track from ${oldPath} to ${newName}`, error);
             return { success: false, error: error.message };
+        }
+    });
+
+    ipcMain.handle('get-detailed-stats', (event, statType) => {
+        switch (statType) {
+            case 'downloads':
+                return stats.downloadHistory || [];
+            case 'playlists':
+                return stats.playlistHistory || [];
+            case 'failures':
+                return stats.failureHistory || [];
+            default:
+                return [];
         }
     });
 
@@ -773,6 +799,9 @@ app.whenReady().then(() => {
                         if (!isDownloadCancelled) {
                             mainWindow.webContents.send('update-status', `❌ Failed to find link for "${item.name || item.link}": ${error.message}`);
                             stats.songsFailed = (stats.songsFailed || 0) + 1;
+                            if (!stats.failureHistory) stats.failureHistory = [];
+                            stats.failureHistory.unshift({ name: item.name || item.link, date: new Date().toISOString(), reason: 'Link finding failed' });
+                            if (stats.failureHistory.length > 100) stats.failureHistory.pop();
                         }
                     }
                 }
@@ -820,10 +849,16 @@ app.whenReady().then(() => {
                         updateOverallProgress();
                         lastDownloadedFiles.push(filePath);
                         stats.totalSongsDownloaded = (stats.totalSongsDownloaded || 0) + 1;
+                        if (!stats.downloadHistory) stats.downloadHistory = [];
+                        stats.downloadHistory.unshift({ name: item.trackName, date: new Date().toISOString() });
+                        if (stats.downloadHistory.length > 100) stats.downloadHistory.pop();
                     } catch (error) {
                         if (!isDownloadCancelled) {
                             console.error(`Download worker failed:`, error.message);
                             stats.songsFailed = (stats.songsFailed || 0) + 1;
+                            if (!stats.failureHistory) stats.failureHistory = [];
+                            stats.failureHistory.unshift({ name: item.trackName || 'Unknown Track', date: new Date().toISOString(), reason: 'Download failed' });
+                            if (stats.failureHistory.length > 100) stats.failureHistory.pop();
                         }
                     }
                 }
@@ -870,6 +905,9 @@ app.whenReady().then(() => {
             }
             lastDownloadedFiles = [];
             stats.playlistsCreated = (stats.playlistsCreated || 0) + 1;
+            if (!stats.playlistHistory) stats.playlistHistory = [];
+            stats.playlistHistory.unshift({ name: sanitizedPlaylistName, date: new Date().toISOString() });
+            if (stats.playlistHistory.length > 100) stats.playlistHistory.pop();
             saveStats();
             return `Successfully created playlist and moved ${movedCount} files to "${sanitizedPlaylistName}".`;
         } catch (error) {
