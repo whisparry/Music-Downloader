@@ -34,6 +34,9 @@ body, html {
     color: var(--text-primary);
     height: 100vh;
     overflow: hidden;
+    -webkit-user-select: none; /* Safari */
+    -ms-user-select: none; /* IE 10 and IE 11 */
+    user-select: none; /* Standard syntax */
 }
 
 h1 {
@@ -83,11 +86,17 @@ input[type="number"] {
     padding: 10px;
     font-size: 14px;
     box-sizing: border-box;
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 textarea {
     height: 150px;
     resize: vertical;
+    -webkit-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
 }
 
 .hidden {

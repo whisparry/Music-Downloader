@@ -36,6 +36,18 @@ let lastPlaylistName = null;
 let isDownloadCancelled = false;
 
 // --- HELPER FUNCTIONS (Pre-Startup) ---
+function formatEta(ms) {
+    if (ms < 0 || !isFinite(ms)) return 'calculating...';
+    const seconds = Math.floor((ms / 1000) % 60);
+    const minutes = Math.floor((ms / (1000 * 60)) % 60);
+    const hours = Math.floor((ms / (1000 * 60 * 60)));
+
+    if (hours > 0) return `${hours}h ${minutes}m remaining`;
+    if (minutes > 0) return `${minutes}m ${seconds}s remaining`;
+    if (seconds > 0) return `${seconds}s remaining`;
+    return 'less than a second remaining';
+}
+
 function findYtdlpExecutables() {
     try {
         if (!fs.existsSync(ytdlpDir)) {
@@ -768,9 +780,31 @@ app.whenReady().then(() => {
             await Promise.all(Array.from({ length: concurrency }, linkFinderWorker));
 
             if (isDownloadCancelled) return;
-            mainWindow.webContents.send('update-status', `Phase 2/2: Downloading ${itemsToDownload.length} tracks...`);
+            
+            const totalItemsToDownload = itemsToDownload.length;
+            if (totalItemsToDownload === 0) {
+                mainWindow.webContents.send('update-status', 'No valid tracks found to download.', true, { success: true, filesDownloaded: 0 });
+                return;
+            }
 
-            const downloadQueue = [...itemsToDownload.sort((a, b) => a.index - b.index)];
+            mainWindow.webContents.send('update-status', `Phase 2/2: Downloading ${totalItemsToDownload} tracks...`);
+
+            const fileProgress = new Array(totalItemsToDownload).fill(0);
+            const downloadPhaseStartTime = Date.now();
+
+            const updateOverallProgress = () => {
+                const totalProgress = fileProgress.reduce((a, b) => a + b, 0) / totalItemsToDownload;
+                const elapsedMs = Date.now() - downloadPhaseStartTime;
+                let etaString = 'calculating...';
+                if (totalProgress > 1) {
+                    const totalEstimatedTime = (elapsedMs / totalProgress) * 100;
+                    const remainingMs = totalEstimatedTime - elapsedMs;
+                    etaString = formatEta(remainingMs);
+                }
+                mainWindow.webContents.send('download-progress', { progress: totalProgress, eta: etaString });
+            };
+
+            const downloadQueue = [...itemsToDownload.sort((a, b) => a.index - b.index).map((item, idx) => ({ ...item, queueIndex: idx }))];
 
             const downloadWorker = async () => {
                 while (downloadQueue.length > 0) {
@@ -778,7 +812,12 @@ app.whenReady().then(() => {
                     const item = downloadQueue.shift();
                     if (!item) continue;
                     try {
-                        const filePath = await downloadItem(item, item.index, totalItems);
+                        const filePath = await downloadItem(item, item.index, totalItems, (progress) => {
+                            fileProgress[item.queueIndex] = progress;
+                            updateOverallProgress();
+                        });
+                        fileProgress[item.queueIndex] = 100;
+                        updateOverallProgress();
                         lastDownloadedFiles.push(filePath);
                         stats.totalSongsDownloaded = (stats.totalSongsDownloaded || 0) + 1;
                     } catch (error) {
@@ -987,7 +1026,7 @@ app.whenReady().then(() => {
         return title.trim();
     }
 
-    async function downloadItem(item, index, total) {
+    async function downloadItem(item, index, total, onProgress) {
         const { youtubeLink: link, trackName } = item;
         const sanitizedTrackName = sanitizeFilename(trackName);
         const numberPrefix = (index + 1).toString().padStart(3, '0');
@@ -1018,8 +1057,13 @@ app.whenReady().then(() => {
             proc.stdout.on('data', (data) => {
                 const output = data.toString();
                 const progressMatch = output.match(/\[download\]\s+([\d.]+)%/);
-                if (progressMatch) {
-                    mainWindow.webContents.send('update-status', `[${index + 1}/${total}] Downloading "${sanitizedTrackName}"... ${parseFloat(progressMatch[1]).toFixed(1)}%`);
+                if (progressMatch && onProgress) {
+                    onProgress(parseFloat(progressMatch[1]));
+                } else {
+                    const progressMatchSimple = output.match(/(\d+)%/);
+                    if (progressMatchSimple && onProgress) {
+                        onProgress(parseFloat(progressMatchSimple[1]));
+                    }
                 }
                 const destinationMatch = output.match(/\[ExtractAudio\] Destination: (.*)/);
                 if (destinationMatch) finalPath = destinationMatch[1].trim();
