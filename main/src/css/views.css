@@ -719,6 +719,11 @@ body.hide-playlist-counts .playlist-stats {
     display: none;
 }
 
+.track-number {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
 body.hide-track-numbers .track-number {
     display: none;
 }
