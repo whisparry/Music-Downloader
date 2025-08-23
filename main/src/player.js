@@ -84,6 +84,9 @@ function renderPlaylist() {
         item.innerHTML = `<span class="track-number">${displayIndex + 1}.</span><span class="playlist-name" title="${track.name}">${track.name.replace(/^\d+\s*-\s*/, '')}</span>`;
         playlistContainer.appendChild(item);
         item.addEventListener('click', () => playTrack(originalIndexInPlaylist));
+        if (originalIndexInPlaylist === ctx.state.currentTrackIndex) {
+            item.classList.add('active');
+        }
     });
 }
 
@@ -109,7 +112,7 @@ function playTrack(index) {
     }
 
     nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
-    document.querySelectorAll('.playlist-item').forEach(item => item.classList.toggle('active', parseInt(item.dataset.index) === index));
+    renderPlaylist(); // Re-render to update the highlight correctly
     audioPlayer.volume = ctx.state.lastVolume;
 }
 
@@ -122,10 +125,13 @@ function resetPlayerState() {
     progressBar.style.width = '0%';
     currentTimeEl.textContent = '0:00';
     totalDurationEl.textContent = '0:00';
+    ctx.state.currentTrackIndex = -1;
+    renderPlaylist();
 }
 
 async function loadQueueTracks(isRefresh = false) {
-    const { playlistContainer, tracksHeader, currentPlaylistTrackCount } = ctx.elements;
+    const { playlistContainer, tracksHeader, currentPlaylistTrackCount, audioPlayer, nowPlaying, playIcon, pauseIcon } = ctx.elements;
+
     if (ctx.state.activeQueuePaths.size === 0) {
         resetPlayerState();
         playlistContainer.innerHTML = `<div class="empty-playlist-message">Select a playlist.</div>`;
@@ -134,18 +140,36 @@ async function loadQueueTracks(isRefresh = false) {
         updatePlaylistItemsUI();
         return;
     }
+
+    const isPlaying = audioPlayer.currentTime > 0 && !audioPlayer.paused;
+    let currentlyPlayingTrackPath = null;
+    if (isPlaying && ctx.state.currentTrackIndex >= 0 && ctx.state.currentTrackIndex < ctx.state.playlist.length) {
+        currentlyPlayingTrackPath = ctx.state.playlist[ctx.state.currentTrackIndex].path;
+    }
+
     try {
         ctx.helpers.showLoader();
         let combinedTracks = [];
         const results = await Promise.all(Array.from(ctx.state.activeQueuePaths).map(p => window.electronAPI.getPlaylistTracks(p)));
         for (const result of results) combinedTracks.push(...result.tracks);
+
         ctx.state.playlist = combinedTracks.map((track, index) => ({ ...track, originalIndex: index }));
         ctx.state.originalPlaylist = [...ctx.state.playlist];
         if (ctx.state.isShuffled) {
             ctx.state.playlist.sort(() => Math.random() - 0.5);
         }
+
+        if (currentlyPlayingTrackPath) {
+            const newIndex = ctx.state.playlist.findIndex(track => track.path === currentlyPlayingTrackPath);
+            ctx.state.currentTrackIndex = newIndex; // Will be -1 if not found, which is fine
+        } else if (!isRefresh) {
+            ctx.state.currentTrackIndex = ctx.state.playlist.length > 0 ? 0 : -1;
+        } else {
+            ctx.state.currentTrackIndex = ctx.state.playlist.length > 0 ? 0 : -1;
+        }
+
         renderPlaylist();
-        
+
         let headerText;
         if (ctx.state.activeQueuePaths.size === 1) {
             const singlePlaylistPath = ctx.state.activeQueuePaths.values().next().value;
@@ -158,30 +182,18 @@ async function loadQueueTracks(isRefresh = false) {
         currentPlaylistTrackCount.textContent = `${combinedTracks.length} tracks`;
         updatePlaylistItemsUI();
 
-        const isPlaying = ctx.elements.audioPlayer.currentTime > 0 && !ctx.elements.audioPlayer.paused;
-
         if (ctx.state.playlist.length > 0) {
-            if (!isRefresh) {
-                // New playlist selection. Only auto-play if nothing is currently playing.
-                if (!isPlaying) {
-                    playTrack(0);
-                }
-            } else {
-                // On refresh, just load the first track's info but don't play.
-                // This stops current playback which is probably desired for a refresh.
-                ctx.state.currentTrackIndex = 0;
+            if (isRefresh) {
                 const track = ctx.state.playlist[0];
-                ctx.elements.audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
+                audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
                 nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
-                // Ensure UI reflects paused state
-                ctx.elements.playIcon.classList.remove('hidden');
-                ctx.elements.pauseIcon.classList.add('hidden');
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+            } else if (!isPlaying) {
+                playTrack(0);
             }
         } else {
-            // The new queue is empty. Only reset the player if nothing was playing.
-            if (!isPlaying) {
-                resetPlayerState();
-            }
+            resetPlayerState();
         }
     } catch (error) {
         console.error("Error loading queue tracks:", error);
