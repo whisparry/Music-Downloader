@@ -131,6 +131,7 @@ async function loadQueueTracks(isRefresh = false) {
         playlistContainer.innerHTML = `<div class="empty-playlist-message">Select a playlist.</div>`;
         tracksHeader.textContent = 'Tracks';
         currentPlaylistTrackCount.textContent = '0 tracks';
+        updatePlaylistItemsUI();
         return;
     }
     try {
