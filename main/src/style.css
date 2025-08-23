@@ -1,5 +1,19 @@
 /* Basic Reset and Font */
 :root {
+    /* FIX: Add default theme variables as a fallback to prevent a blank screen if JS fails. */
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #2a2a2a;
+    --text-primary: #e0e0e0;
+    --text-secondary: #b3b3b3;
+    --border-color: #333333;
+    --accent-primary: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-text-color: #ffffff;
+    --danger-primary: #ef4444;
+    --danger-hover: #dc2626;
+    --success-primary: #22c55e;
+
     --tab-switch-speed: 0.3s;
     --dropdown-speed: 0.4s;
     --theme-fade-speed: 0.3s;
@@ -349,17 +363,23 @@ a:hover {
     text-decoration: underline;
 }
 
-textarea {
+textarea,
+input[type="text"],
+input[type="password"],
+input[type="number"] {
     width: 100%;
-    height: 150px;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     color: var(--text-primary);
     padding: 10px;
     font-size: 14px;
-    resize: vertical;
     box-sizing: border-box;
+}
+
+textarea {
+    height: 150px;
+    resize: vertical;
 }
 
 .input-container {
@@ -634,7 +654,6 @@ button:hover {
     font-weight: bold;
 }
 
-.settings-group input,
 .settings-group select {
     width: 100%;
     padding: 10px;
@@ -1090,6 +1109,19 @@ body.hide-search-bars .playlist-search-bar {
     flex-grow: 1;
 }
 
+.playlist-rename-input {
+    flex-grow: 1;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 3px;
+    padding: 2px 4px;
+    font-size: inherit;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .playlist-delete-btn {
     background: none;
     border: none;
@@ -1436,17 +1468,6 @@ body.hide-search-bars .playlist-search-bar {
     border-bottom: 1px solid var(--border-color);
 }
 
-.playlist-search-container input {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    font-size: 14px;
-}
-
 .playlist-search-bar {
     display: flex;
     align-items: center;
@@ -1539,4 +1560,76 @@ input:checked + .slider:before {
 
 .slider.round:before {
     border-radius: 50%;
+}
+
+.input-fields-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.spotify-search-container {
+    position: relative;
+}
+
+.spotify-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    z-index: 100;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.spotify-results-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.spotify-results-dropdown::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 0 8px 8px 0;
+}
+
+.spotify-results-dropdown::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 4px;
+}
+
+.spotify-results-dropdown::-webkit-scrollbar-thumb:hover {
+    background-color: var(--accent-primary);
+}
+
+.spotify-result-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.spotify-result-item:last-child {
+    border-bottom: none;
+}
+
+.spotify-result-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.spotify-result-item p {
+    margin: 0;
+    line-height: 1.3;
+}
+
+.spotify-result-name {
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.spotify-result-owner {
+    font-size: 12px;
+    color: var(--text-secondary);
 }

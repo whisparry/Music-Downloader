@@ -595,6 +595,31 @@ app.whenReady().then(() => {
 
     // --- DOWNLOAD & SPOTIFY LOGIC ---
 
+    ipcMain.handle('search-spotify-playlists', async (event, query) => {
+        if (!query || query.trim().length < 3) {
+            return [];
+        }
+        try {
+            await refreshSpotifyToken();
+            const data = await spotifyApi.searchPlaylists(query, { limit: 10 });
+            return data.body.playlists.items
+                .filter(p => p) // FIX: Filter out any null items from the Spotify API response.
+                .map(p => ({
+                name: p.name,
+                owner: p.owner.display_name,
+                url: p.external_urls.spotify
+            }));
+        } catch (error) {
+            console.error('Spotify search failed:', error);
+            // Send a user-friendly error back to the renderer
+            let errorMessage = 'Could not perform search.';
+            if (error.message.includes('token')) {
+                errorMessage = 'Spotify auth failed. Check credentials in Settings.';
+            }
+            return { error: errorMessage };
+        }
+    });
+
     ipcMain.on('start-download', async (event, linksArray) => {
         if (!linksArray || linksArray.length === 0) return mainWindow.webContents.send('update-status', 'No links provided.', true, { success: false });
         if (ytdlpExecutables.length === 0) return mainWindow.webContents.send('update-status', 'Error: No yt-dlp executable found.', true, { success: false });
