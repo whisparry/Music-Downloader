@@ -144,10 +144,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const hideTrackNumbersInput = document.getElementById('hideTrackNumbers');
     const normalizeVolumeInput = document.getElementById('normalizeVolume');
     const hideSearchBarsInput = document.getElementById('hideSearchBars');
-    const enableSongFadingInput = document.getElementById('enableSongFading');
-    const songFadingDurationContainer = document.getElementById('song-fading-duration-container');
-    const songFadingDurationSlider = document.getElementById('song-fading-duration-slider');
-    const songFadingDurationValue = document.getElementById('song-fading-duration-value');
     const updateYtdlpBtn = document.getElementById('update-ytdlp-btn');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
 
@@ -173,14 +169,9 @@ window.addEventListener('DOMContentLoaded', () => {
     let draggedTrackIndex = null;
     let toastTimer = null;
     let notificationHistory = [];
-    let fadeInterval = null;
-    let isAutoFadingOut = false;
     let trackSearchQuery = '';
     let playlistSearchQuery = '';
     let lastVolume = 1; // For mute/unmute functionality
-
-    const playlistSearchInput = document.getElementById('playlist-search-input');
-    const playlistSearchBtn = document.getElementById('playlist-search-btn');
 
     if (playlistSearchInput && playlistSearchBtn) {
         playlistSearchInput.addEventListener('input', () => {
@@ -467,8 +458,6 @@ window.addEventListener('DOMContentLoaded', () => {
             hideTrackNumbers: hideTrackNumbersInput.checked,
             normalizeVolume: normalizeVolumeInput.checked,
             hideSearchBars: hideSearchBarsInput.checked,
-            enableSongFading: enableSongFadingInput.checked,
-            songFadingDuration: parseFloat(songFadingDurationSlider.value),
         };
         await window.electronAPI.saveSettings(newSettings);
     };
@@ -523,23 +512,10 @@ window.addEventListener('DOMContentLoaded', () => {
             normalizeVolumeInput.checked = currentConfig.normalizeVolume || false;
             hideSearchBarsInput.checked = currentConfig.hideSearchBars || false;
             body.classList.toggle('hide-search-bars', hideSearchBarsInput.checked);
-            enableSongFadingInput.checked = currentConfig.enableSongFading || false;
-            const songFadingDuration = currentConfig.songFadingDuration || 0.5;
-            songFadingDurationSlider.value = songFadingDuration;
-            songFadingDurationValue.textContent = `${songFadingDuration}s`;
-            songFadingDurationContainer.classList.toggle('hidden', !enableSongFadingInput.checked);
         }
         
-        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, enableSongFadingInput, songFadingDurationSlider].forEach(input => {
+        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput].forEach(input => {
             input.addEventListener('change', saveSettings);
-        });
-
-        songFadingDurationSlider.addEventListener('input', () => {
-            songFadingDurationValue.textContent = `${songFadingDurationSlider.value}s`;
-        });
-
-        enableSongFadingInput.addEventListener('change', () => {
-            songFadingDurationContainer.classList.toggle('hidden', !enableSongFadingInput.checked);
         });
 
         hideRefreshButtonsInput.addEventListener('change', () => {
@@ -672,84 +648,223 @@ window.addEventListener('DOMContentLoaded', () => {
         root.style.setProperty('--theme-fade-speed', `${speed}s`);
     });
 
-    // --- Playlist Management Logic ---
-    function createInlineEditor(elementToReplace, originalText, onSave) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'inline-edit-input';
-        input.value = originalText;
+    // --- Playlist Loading and Rendering ---
+    async function loadAndRenderPlaylists() {
+        try {
+            showLoader();
+            const [allPlaylists, stats] = await Promise.all([
+                window.electronAPI.getPlaylists(),
+                window.electronAPI.getLibraryStats()
+            ]);
+            
+            playlists = allPlaylists; // Update global state
+            totalPlaylistsCount.textContent = `${stats.playlistCount} Playlists`;
+            totalTracksCount.textContent = `${stats.trackCount} Tracks`;
 
-        elementToReplace.replaceWith(input);
-        input.focus();
-        input.select();
+            allPlaylistsGrid.innerHTML = '';
+            favoritePlaylistsGrid.innerHTML = '';
 
-        const save = async () => {
-            const newName = input.value.trim();
-            if (newName && newName !== originalText) {
-                await onSave(newName);
-            } else {
-                input.replaceWith(elementToReplace);
+            if (playlists.length === 0) {
+                allPlaylistsGrid.innerHTML = `<div class="empty-playlist-message">No playlists found. Set your playlists folder in Settings or create one in Playlist Management.</div>`;
+                return;
             }
-        };
 
-        input.addEventListener('blur', save);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                input.blur(); // Trigger the save
-            } else if (e.key === 'Escape') {
-                input.replaceWith(elementToReplace);
+            const filteredPlaylists = playlists.filter(p => p.name.toLowerCase().includes(playlistSearchQuery));
+
+            filteredPlaylists.forEach(p => {
+                const isFavorite = favoritePlaylists.includes(p.path);
+                const targetGrid = isFavorite ? favoritePlaylistsGrid : allPlaylistsGrid;
+                
+                const item = document.createElement('div');
+                item.className = 'playlist-list-item';
+                item.dataset.path = p.path;
+
+                const name = document.createElement('span');
+                name.className = 'playlist-name';
+                name.textContent = p.name;
+                name.title = p.name;
+
+                const addButton = document.createElement('button');
+                addButton.className = 'playlist-add-btn';
+                addButton.textContent = '+';
+                addButton.title = 'Add to current queue';
+
+                item.appendChild(name);
+                item.appendChild(addButton);
+                targetGrid.appendChild(item);
+
+                item.addEventListener('click', (e) => {
+                    if (e.target === addButton) return; // Don't trigger if add button is clicked
+                    activePlaylistPath = p.path;
+                    activeQueuePaths.clear();
+                    activeQueuePaths.add(p.path);
+                    loadQueueTracks();
+                });
+
+                addButton.addEventListener('click', () => {
+                    if (activeQueuePaths.has(p.path)) {
+                        if (activeQueuePaths.size > 1) { // Can't remove the last one
+                            activeQueuePaths.delete(p.path);
+                        }
+                    } else {
+                        activeQueuePaths.add(p.path);
+                    }
+                    loadQueueTracks(true); // isRefresh = true
+                });
+
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (isFavorite) {
+                        favoritePlaylists = favoritePlaylists.filter(path => path !== p.path);
+                    } else {
+                        favoritePlaylists.push(p.path);
+                    }
+                    saveSettings();
+                    loadAndRenderPlaylists(); // Re-render to move it
+                });
+            });
+
+            favoritePlaylistsContainer.classList.toggle('hidden', favoritePlaylistsGrid.children.length === 0);
+            updatePlaylistItemsUI();
+
+        } catch (error) {
+            console.error("Failed to load playlists:", error);
+            showNotification('error', 'Playlist Error', 'Could not load playlists. Check console for details.');
+        } finally {
+            hideLoader();
+        }
+    }
+
+    function updatePlaylistItemsUI() {
+        document.querySelectorAll('.playlist-list-item').forEach(item => {
+            const path = item.dataset.path;
+            item.classList.toggle('active', path === activePlaylistPath);
+            const addButton = item.querySelector('.playlist-add-btn');
+            if (addButton) {
+                const isMixedIn = activeQueuePaths.has(path);
+                addButton.classList.toggle('mixed-in', isMixedIn);
+                addButton.textContent = isMixedIn ? '✓' : '+';
+                addButton.title = isMixedIn ? 'Remove from queue' : 'Add to queue';
             }
         });
     }
 
-    function initializePlaylistManagement() {
-        if (isPmInitialized) return;
-        pmRenderPlaylists();
+    async function loadQueueTracks(isRefresh = false) {
+        if (!isRefresh && activeQueuePaths.size === 0) {
+            playlistContainer.innerHTML = `<div class="empty-playlist-message">Select a playlist to start listening.</div>`;
+            tracksHeader.textContent = 'Tracks';
+            currentPlaylistTrackCount.textContent = '0 tracks';
+            return;
+        }
 
-        pmTrackSearchInput.addEventListener('input', () => {
-            if (pmSelectedPlaylistPath) {
-                pmLoadAndRenderTracks(pmSelectedPlaylistPath);
+        try {
+            showLoader();
+            let combinedTracks = [];
+            const trackPromises = Array.from(activeQueuePaths).map(p => window.electronAPI.getPlaylistTracks(p));
+            const results = await Promise.all(trackPromises);
+
+            for (const result of results) {
+                combinedTracks.push(...result.tracks);
             }
+
+            playlist = combinedTracks.map((track, index) => ({ ...track, originalIndex: index }));
+            originalPlaylist = [...playlist];
+            
+            if (isShuffled) {
+                toggleShuffle(); // Re-shuffle with the new playlist
+            } else {
+                renderPlaylist();
+            }
+
+            const activePlaylist = playlists.find(p => p.path === activePlaylistPath);
+            tracksHeader.textContent = activePlaylist ? activePlaylist.name : 'Mixed Queue';
+            currentPlaylistTrackCount.textContent = `${combinedTracks.length} tracks`;
+            updatePlaylistItemsUI();
+
+            if (playlist.length > 0 && playlist[0].path) {
+                currentTrackIndex = 0;
+                const track = playlist[0];
+                audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
+                nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
+                document.querySelectorAll('.playlist-item').forEach(item => {
+                    item.classList.toggle('active', parseInt(item.dataset.index) === 0);
+                });
+            } else {
+                resetPlayerState();
+            }
+        } catch (error) {
+            console.error("Failed to load queue tracks:", error);
+            showNotification('error', 'Track Error', 'Could not load tracks for the selected playlist(s).');
+        } finally {
+            hideLoader();
+        }
+    }
+
+    function renderPlaylist() {
+        playlistContainer.innerHTML = '';
+        if (playlist.length === 0) {
+            playlistContainer.innerHTML = `<div class="empty-playlist-message">This playlist is empty.</div>`;
+            return;
+        }
+
+        const filteredPlaylist = playlist.filter(track => track.name.toLowerCase().includes(trackSearchQuery));
+
+        if (filteredPlaylist.length === 0) {
+            playlistContainer.innerHTML = `<div class="empty-playlist-message">No tracks match your search.</div>`;
+            return;
+        }
+
+        filteredPlaylist.forEach((track, displayIndex) => {
+            const originalIndexInPlaylist = playlist.findIndex(pTrack => pTrack.path === track.path);
+
+            const item = document.createElement('div');
+            item.className = 'playlist-item';
+            item.dataset.index = originalIndexInPlaylist;
+            item.draggable = true;
+
+            const trackNumber = document.createElement('span');
+            trackNumber.className = 'track-number';
+            trackNumber.textContent = `${displayIndex + 1}.`;
+
+            const trackName = document.createElement('span');
+            trackName.className = 'playlist-name';
+            trackName.textContent = track.name.replace(/^\d+\s*-\s*/, '');
+            trackName.title = track.name;
+
+            item.appendChild(trackNumber);
+            item.appendChild(trackName);
+            playlistContainer.appendChild(item);
+
+            item.addEventListener('click', () => {
+                playTrack(originalIndexInPlaylist);
+            });
         });
+    }
+
+    // --- Playlist Management Logic ---
+    async function initializePlaylistManagement() {
+        if (isPmInitialized) {
+            pmRenderPlaylists();
+            return;
+        }
+        await pmRenderPlaylists();
+        isPmInitialized = true;
 
         createNewPlaylistBtnPm.addEventListener('click', async () => {
             const result = await window.electronAPI.createNewPlaylist();
             if (result.success) {
-                showNotification('success', 'Playlist Created', `"${result.newPlaylist.name}" is ready to be renamed.`);
-                // Refresh the list to show the new playlist
+                showNotification('success', 'Playlist Created', `"${result.newPlaylist.name}" has been created.`);
                 await pmRenderPlaylists();
                 if (isPlayerInitialized) {
-                    loadAndRenderPlaylists();
-                }
-
-                // Find the new playlist element and trigger inline editing
-                const newPlaylistElement = document.querySelector(`#pm-playlists-container [data-path="${CSS.escape(result.newPlaylist.path)}"]`);
-                if (newPlaylistElement) {
-                    const nameSpan = newPlaylistElement.querySelector('span');
-                    if (nameSpan) {
-                        // Scroll into view
-                        newPlaylistElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        
-                        // Trigger the rename functionality
-                        createInlineEditor(nameSpan, result.newPlaylist.name, async (newName) => {
-                            const renameResult = await window.electronAPI.renamePlaylist({ oldPath: result.newPlaylist.path, newName });
-                            if (renameResult.success) {
-                                showNotification('success', 'Playlist Renamed', `Renamed to "${newName}".`);
-                                // Final refresh after rename
-                                pmRenderPlaylists();
-                                if (isPlayerInitialized) loadAndRenderPlaylists();
-                            } else {
-                                alert(`Error renaming playlist: ${renameResult.error}`);
-                                showNotification('error', 'Rename Failed', renameResult.error);
-                                pmRenderPlaylists(); // Refresh to show original name
-                            }
-                        });
-                    }
+                    await loadAndRenderPlaylists();
                 }
             } else {
-                alert(`Error creating playlist: ${result.error}`);
                 showNotification('error', 'Creation Failed', result.error);
             }
+        });
+
+        pmTrackSearchInput.addEventListener('input', () => {
+            pmRenderTracks(pmSelectedPlaylistPath);
         });
 
         modalCloseBtn.addEventListener('click', () => moveTrackModal.classList.add('hidden'));
@@ -757,258 +872,193 @@ window.addEventListener('DOMContentLoaded', () => {
         moveTrackConfirmBtn.addEventListener('click', async () => {
             const destinationPlaylistPath = moveTrackDestinationSelect.value;
             if (trackToMove && destinationPlaylistPath) {
-                const result = await window.electronAPI.moveTrack({
-                    sourcePath: trackToMove.path,
-                    destinationPlaylistPath: destinationPlaylistPath
-                });
+                const result = await window.electronAPI.moveTrack({ sourcePath: trackToMove.path, destinationPlaylistPath });
                 if (result.success) {
                     showNotification('success', 'Track Moved', `Moved "${trackToMove.name}" successfully.`);
-                    // Refresh both player and management views if they are initialized
-                    if (isPlayerInitialized) loadAndRenderPlaylists();
-                    pmLoadAndRenderTracks(pmSelectedPlaylistPath);
+                    pmRenderTracks(pmSelectedPlaylistPath); // Refresh current view
                 } else {
-                    alert(`Error moving track: ${result.error}`);
                     showNotification('error', 'Move Failed', result.error);
                 }
+                moveTrackModal.classList.add('hidden');
             }
-            moveTrackModal.classList.add('hidden');
         });
-
-        isPmInitialized = true;
     }
 
     async function pmRenderPlaylists() {
-        let allPlaylists = await window.electronAPI.getPlaylists();
-        pmFavoritePlaylistsGrid.innerHTML = '';
-        pmAllPlaylistsGrid.innerHTML = '';
+        try {
+            const allPlaylists = await window.electronAPI.getPlaylists();
+            playlists = allPlaylists; // Update global state
 
-        if (playlistSearchQuery) {
-            allPlaylists = allPlaylists.filter(p => p.name.toLowerCase().includes(playlistSearchQuery));
-        }
+            pmAllPlaylistsGrid.innerHTML = '';
+            pmFavoritePlaylistsGrid.innerHTML = '';
 
-        if (allPlaylists.length === 0) {
-            pmFavoritePlaylistsContainer.classList.add('hidden');
-            pmAllPlaylistsGrid.innerHTML = `<div class="empty-playlist-message">No playlists found${playlistSearchQuery ? ' matching your search' : ''}.</div>`;
-            return;
-        }
-        allPlaylists.forEach(p => {
-            const item = document.createElement('div');
-            item.className = 'playlist-list-item';
-            item.dataset.path = p.path;
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'playlist-name';
-            nameSpan.textContent = p.name;
-            item.appendChild(nameSpan);
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'playlist-delete-btn';
-            deleteBtn.title = 'Delete Playlist';
-            deleteBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-            item.appendChild(deleteBtn);
-
-            item.addEventListener('click', () => {
-                pmSelectedPlaylistPath = p.path;
-                pmTracksHeader.textContent = p.name;
-                document.querySelectorAll('#pm-playlists-container .playlist-list-item').forEach(el => {
-                    el.classList.toggle('active', el.dataset.path === p.path);
-                });
-                pmLoadAndRenderTracks(p.path);
-            });
-
-            deleteBtn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // Prevent the playlist from being selected
-                const confirmDelete = confirm(`Are you sure you want to permanently delete the playlist "${p.name}"? This cannot be undone.`);
-                if (confirmDelete) {
-                    const result = await window.electronAPI.deletePlaylist(p.path);
-                    if (result.success) {
-                        showNotification('success', 'Playlist Deleted', `"${p.name}" was permanently deleted.`);
-                        // If the deleted playlist was the one being viewed, clear the tracks panel
-                        if (pmSelectedPlaylistPath === p.path) {
-                            pmSelectedPlaylistPath = null;
-                            pmTracksHeader.textContent = 'Select a playlist';
-                            pmTracksContainer.innerHTML = '';
-                        }
-                        // Refresh both playlist views
-                        pmRenderPlaylists();
-                        if (isPlayerInitialized) {
-                            loadAndRenderPlaylists();
-                        }
-                    } else {
-                        alert(`Error deleting playlist: ${result.error}`);
-                        showNotification('error', 'Delete Failed', result.error);
-                    }
-                }
-            });
-
-            item.addEventListener('dblclick', () => {
-                createInlineEditor(nameSpan, p.name, async (newName) => {
-                    const result = await window.electronAPI.renamePlaylist({ oldPath: p.path, newName });
-                    if (result.success) {
-                        showNotification('success', 'Playlist Renamed', `Renamed to "${newName}".`);
-                        if (favoritePlaylists.includes(p.path)) {
-                            favoritePlaylists = favoritePlaylists.map(favPath => favPath === p.path ? result.newPath : favPath);
-                            saveSettings();
-                        }
-                        pmRenderPlaylists();
-                        if (isPlayerInitialized) loadAndRenderPlaylists();
-                        if (pmSelectedPlaylistPath === p.path) {
-                            pmSelectedPlaylistPath = result.newPath;
-                            pmTracksHeader.textContent = newName;
-                            pmLoadAndRenderTracks(result.newPath);
-                        }
-                    } else {
-                        alert(`Error renaming playlist: ${result.error}`);
-                        showNotification('error', 'Rename Failed', result.error);
-                        item.replaceWith(nameSpan); // Restore original on failure
-                    }
-                });
-            });
-
-            item.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                window.electronAPI.showInExplorer(p.path);
-            });
-
-            if (favoritePlaylists.includes(p.path)) {
-                pmFavoritePlaylistsGrid.appendChild(item);
-            } else {
-                pmAllPlaylistsGrid.appendChild(item);
+            if (playlists.length === 0) {
+                pmAllPlaylistsGrid.innerHTML = `<div class="empty-playlist-message">No playlists found.</div>`;
+                return;
             }
-        });
 
-        pmFavoritePlaylistsContainer.classList.toggle('hidden', favoritePlaylists.length === 0);
-    }
+            const filteredPlaylists = playlists.filter(p => p.name.toLowerCase().includes(playlistSearchQuery));
 
-    async function pmLoadAndRenderTracks(playlistPath) {
-        const { tracks } = await window.electronAPI.getPlaylistTracks(playlistPath);
-        pmTracksContainer.innerHTML = '';
+            filteredPlaylists.forEach(p => {
+                const isFavorite = favoritePlaylists.includes(p.path);
+                const targetGrid = isFavorite ? pmFavoritePlaylistsGrid : pmAllPlaylistsGrid;
 
-        const searchQuery = pmTrackSearchInput.value.trim().toLowerCase();
-        let filteredTracks = tracks;
-        if (searchQuery) {
-            filteredTracks = tracks.filter(track => track.name.toLowerCase().includes(searchQuery));
-        }
+                const item = document.createElement('div');
+                item.className = 'playlist-list-item';
+                item.dataset.path = p.path;
 
-        if (!filteredTracks || filteredTracks.length === 0) {
-            pmTracksContainer.innerHTML = `<div class="empty-playlist-message">This playlist is empty${searchQuery ? ' or no tracks match your search' : ''}.</div>`;
-            return;
-        }
+                const name = document.createElement('span');
+                name.className = 'playlist-name';
+                name.textContent = p.name;
+                name.title = p.name;
 
-        filteredTracks.forEach(track => {
-            const item = document.createElement('div');
-            item.className = 'pm-track-item';
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'playlist-delete-btn';
+                deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+                deleteBtn.title = 'Delete Playlist';
 
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'pm-track-name';
-            const trackNameWithoutExt = track.name.substring(0, track.name.lastIndexOf('.')) || track.name;
-            nameSpan.textContent = trackNameWithoutExt;
-            nameSpan.title = track.name;
+                item.appendChild(name);
+                item.appendChild(deleteBtn);
+                targetGrid.appendChild(item);
 
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'pm-track-actions';
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.playlist-delete-btn')) return;
+                    pmSelectedPlaylistPath = p.path;
+                    document.querySelectorAll('#pm-playlists-container .playlist-list-item').forEach(el => el.classList.remove('active'));
+                    item.classList.add('active');
+                    pmTracksHeader.textContent = p.name;
+                    pmRenderTracks(p.path);
+                });
 
-            const moveBtn = document.createElement('button');
-            moveBtn.textContent = 'Move';
-            moveBtn.className = 'pm-action-btn';
-            moveBtn.addEventListener('click', () => openMoveTrackModal(track));
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Delete';
-            deleteBtn.className = 'pm-action-btn pm-delete-btn';
-            deleteBtn.addEventListener('click', async () => {
-                const confirmDelete = confirm(`Are you sure you want to permanently delete "${track.name}"?`);
-                if (confirmDelete) {
-                    const result = await window.electronAPI.deleteTrack(track.path);
-                    if (result.success) {
-                        showNotification('success', 'Track Deleted', `"${track.name}" was permanently deleted.`);
-                        // Refresh both player and management views if they are initialized
-                        if (isPlayerInitialized) loadAndRenderPlaylists();
-                        pmLoadAndRenderTracks(playlistPath);
-                    } else {
-                        alert(`Error deleting track: ${result.error}`);
-                        showNotification('error', 'Delete Failed', result.error);
+                name.addEventListener('dblclick', () => {
+                    const newName = prompt('Enter new playlist name:', p.name);
+                    if (newName && newName.trim() !== p.name) {
+                        window.electronAPI.renamePlaylist({ oldPath: p.path, newName: newName.trim() }).then(result => {
+                            if (result.success) {
+                                showNotification('success', 'Renamed', `Playlist renamed to "${newName.trim()}".`);
+                                pmRenderPlaylists();
+                                if (isPlayerInitialized) loadAndRenderPlaylists();
+                            } else {
+                                showNotification('error', 'Rename Failed', result.error);
+                            }
+                        });
                     }
-                }
-            });
+                });
 
-            item.addEventListener('dblclick', () => {
-                createInlineEditor(nameSpan, trackNameWithoutExt, async (newName) => {
-                    const result = await window.electronAPI.renameTrack({ oldPath: track.path, newName });
-                    if (result.success) {
-                        showNotification('success', 'Track Renamed', `Renamed to "${newName}".`);
-                        pmLoadAndRenderTracks(playlistPath);
-                        if (isPlayerInitialized && activeQueuePaths.has(playlistPath)) {
-                            loadQueueTracks();
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`Are you sure you want to permanently delete the playlist "${p.name}"?`)) {
+                        const result = await window.electronAPI.deletePlaylist(p.path);
+                        if (result.success) {
+                            showNotification('success', 'Playlist Deleted', `"${p.name}" has been deleted.`);
+                            if (pmSelectedPlaylistPath === p.path) {
+                                pmTracksContainer.innerHTML = '';
+                                pmTracksHeader.textContent = 'Select a playlist';
+                                pmSelectedPlaylistPath = null;
+                            }
+                            pmRenderPlaylists();
+                            if (isPlayerInitialized) loadAndRenderPlaylists();
+                        } else {
+                            showNotification('error', 'Delete Failed', result.error);
                         }
-                    } else {
-                        alert(`Error renaming track: ${result.error}`);
-                        showNotification('error', 'Rename Failed', result.error);
-                        item.replaceWith(nameSpan); // Restore original on failure
                     }
                 });
             });
 
-            item.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                window.electronAPI.showInExplorer(track.path);
-            });
+            pmFavoritePlaylistsContainer.classList.toggle('hidden', pmFavoritePlaylistsGrid.children.length === 0);
 
-            actionsDiv.appendChild(moveBtn);
-            actionsDiv.appendChild(deleteBtn);
-            item.appendChild(nameSpan);
-            item.appendChild(actionsDiv);
-            pmTracksContainer.appendChild(item);
-        });
-    }
-
-    async function openMoveTrackModal(track) {
-        trackToMove = track;
-        moveTrackNameEl.textContent = track.name;
-        
-        const allPlaylists = await window.electronAPI.getPlaylists();
-        moveTrackDestinationSelect.innerHTML = '';
-        allPlaylists
-            .filter(p => p.path !== pmSelectedPlaylistPath)
-            .forEach(p => {
-                const option = document.createElement('option');
-                option.value = p.path;
-                option.textContent = p.name;
-                moveTrackDestinationSelect.appendChild(option);
-            });
-
-        moveTrackModal.classList.remove('hidden');
-    }
-
-    // --- Statistics Logic ---
-    async function initializeStats() {
-        const stats = await window.electronAPI.getStats();
-        if (stats) {
-            const totalSongs = stats.totalSongsDownloaded || 0;
-            const failedItems = stats.songsFailed || 0;
-            const totalAttempted = totalSongs + failedItems;
-            const successRate = totalAttempted > 0 ? (totalSongs / totalAttempted) * 100 : 0;
-
-            totalSongsStat.textContent = totalSongs;
-            playlistsCreatedStat.textContent = stats.playlistsCreated || 0;
-            downloadsInitiatedStat.textContent = stats.downloadsInitiated || 0;
-            songsFailedStat.textContent = failedItems;
-            linksProcessedStat.textContent = stats.totalLinksProcessed || 0;
-            spotifyLinksStat.textContent = stats.spotifyLinksProcessed || 0;
-            youtubeLinksStat.textContent = stats.youtubeLinksProcessed || 0;
-            successRateStat.textContent = `${successRate.toFixed(1)}%`;
-            notificationsReceivedStat.textContent = stats.notificationsReceived || 0;
+        } catch (error) {
+            console.error("Failed to render PM playlists:", error);
         }
     }
 
-    resetStatsBtn.addEventListener('click', async () => {
-        const confirmed = confirm("Are you sure you want to reset all statistics? This action cannot be undone.");
-        if (confirmed) {
-            await window.electronAPI.resetStats();
-            initializeStats(); // Refresh the view
-            showNotification('success', 'Statistics Reset', 'All stats have been cleared.');
+    async function pmRenderTracks(playlistPath) {
+        if (!playlistPath) {
+            pmTracksContainer.innerHTML = `<div class="empty-playlist-message">Select a playlist to see its tracks.</div>`;
+            return;
         }
-    });
+        try {
+            const { tracks } = await window.electronAPI.getPlaylistTracks(playlistPath);
+            pmTracksContainer.innerHTML = '';
+
+            if (tracks.length === 0) {
+                pmTracksContainer.innerHTML = `<div class="empty-playlist-message">This playlist is empty.</div>`;
+                return;
+            }
+
+            const searchQuery = pmTrackSearchInput.value.trim().toLowerCase();
+            const filteredTracks = tracks.filter(t => t.name.toLowerCase().includes(searchQuery));
+
+            filteredTracks.forEach(track => {
+                const item = document.createElement('div');
+                item.className = 'pm-track-item';
+
+                const name = document.createElement('span');
+                name.className = 'pm-track-name';
+                name.textContent = track.name;
+                name.title = track.name;
+
+                const actions = document.createElement('div');
+                actions.className = 'pm-track-actions';
+
+                const moveBtn = document.createElement('button');
+                moveBtn.textContent = 'Move';
+                moveBtn.className = 'pm-action-btn';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.className = 'pm-action-btn pm-delete-btn';
+
+                actions.appendChild(moveBtn);
+                actions.appendChild(deleteBtn);
+                item.appendChild(name);
+                item.appendChild(actions);
+                pmTracksContainer.appendChild(item);
+
+                name.addEventListener('dblclick', () => {
+                    const newName = prompt('Enter new track name (without extension):', track.name);
+                    if (newName && newName.trim() !== track.name) {
+                        window.electronAPI.renameTrack({ oldPath: track.path, newName: newName.trim() }).then(result => {
+                            if (result.success) {
+                                showNotification('success', 'Renamed', `Track renamed successfully.`);
+                                pmRenderTracks(playlistPath);
+                            } else {
+                                showNotification('error', 'Rename Failed', result.error);
+                            }
+                        });
+                    }
+                });
+
+                deleteBtn.addEventListener('click', async () => {
+                    if (confirm(`Are you sure you want to permanently delete "${track.name}"?`)) {
+                        const result = await window.electronAPI.deleteTrack(track.path);
+                        if (result.success) {
+                            showNotification('success', 'Track Deleted', `"${track.name}" has been deleted.`);
+                            pmRenderTracks(playlistPath);
+                        } else {
+                            showNotification('error', 'Delete Failed', result.error);
+                        }
+                    }
+                });
+
+                moveBtn.addEventListener('click', () => {
+                    trackToMove = track;
+                    moveTrackNameEl.textContent = track.name;
+                    moveTrackDestinationSelect.innerHTML = '';
+                    playlists.forEach(p => {
+                        if (p.path !== playlistPath) {
+                            const option = document.createElement('option');
+                            option.value = p.path;
+                            option.textContent = p.name;
+                            moveTrackDestinationSelect.appendChild(option);
+                        }
+                    });
+                    moveTrackModal.classList.remove('hidden');
+                });
+            });
+        } catch (error) {
+            console.error("Failed to render PM tracks:", error);
+        }
+    }
 
     // --- Music Player Logic ---
     function initializePlayer() {
@@ -1055,12 +1105,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         audioPlayer.addEventListener('timeupdate', updateProgressBar);
         audioPlayer.addEventListener('loadedmetadata', updateTotalDuration);
-        audioPlayer.addEventListener('ended', () => {
-            if (!isAutoFadingOut) {
-                playNextTrack();
-            }
-            isAutoFadingOut = false;
-        });
+        audioPlayer.addEventListener('ended', playNextTrack);
         progressBarContainer.addEventListener('click', seek);
         playPauseBtn.addEventListener('click', togglePlayPause);
         prevBtn.addEventListener('click', playPreviousTrack);
@@ -1076,34 +1121,112 @@ window.addEventListener('DOMContentLoaded', () => {
         loadAndRenderPlaylists();
     }
 
-    function fadeAudio(targetVolume, duration, onComplete) {
-        if (fadeInterval) {
-            clearInterval(fadeInterval);
-        }
+    function resetPlayerState() {
+        audioPlayer.src = '';
+        nowPlaying.textContent = 'No track selected';
+        playIcon.classList.remove('hidden');
+        pauseIcon.classList.add('hidden');
+        progressBar.style.width = '0%';
+        currentTimeEl.textContent = '0:00';
+        totalDurationEl.textContent = '0:00';
+    }
 
-        const startVolume = audioPlayer.volume;
-        const steps = 50;
-        const stepDuration = duration / steps;
-        const volumeStep = (targetVolume - startVolume) / steps;
-
-        // If there's nothing to do, just run the callback
-        if (volumeStep === 0) {
-            if (onComplete) onComplete();
+    function playNextTrack() {
+        if (playlist.length === 0) return;
+        if (repeatState === 2) { // Repeat Single
+            playTrack(currentTrackIndex);
             return;
         }
-
-        fadeInterval = setInterval(() => {
-            let newVolume = audioPlayer.volume + volumeStep;
-
-            if ((volumeStep > 0 && newVolume >= targetVolume) || (volumeStep < 0 && newVolume <= targetVolume)) {
-                newVolume = targetVolume;
-                clearInterval(fadeInterval);
-                fadeInterval = null;
-                if (onComplete) onComplete();
+        let nextIndex = currentTrackIndex + 1;
+        if (nextIndex >= playlist.length) {
+            if (repeatState === 1) { // Repeat Queue
+                nextIndex = 0;
+            } else {
+                resetPlayerState();
+                return;
             }
-            // Ensure volume stays within the valid 0.0 to 1.0 range
-            audioPlayer.volume = Math.max(0, Math.min(1, newVolume));
-        }, stepDuration);
+        }
+        playTrack(nextIndex);
+    }
+
+    function playPreviousTrack() {
+        if (playlist.length === 0) return;
+        if (audioPlayer.currentTime > 3) {
+            playTrack(currentTrackIndex);
+            return;
+        }
+        let prevIndex = currentTrackIndex - 1;
+        if (prevIndex < 0) {
+            if (repeatState === 1) {
+                prevIndex = playlist.length - 1;
+            } else {
+                playTrack(currentTrackIndex);
+                return;
+            }
+        }
+        playTrack(prevIndex);
+    }
+
+    function toggleShuffle() {
+        isShuffled = !isShuffled;
+        shuffleBtn.classList.toggle('active', isShuffled);
+        showNotification('info', 'Shuffle', isShuffled ? 'Shuffle is ON' : 'Shuffle is OFF');
+
+        if (isShuffled) {
+            const currentTrack = playlist[currentTrackIndex];
+            let restOfPlaylist = playlist.filter((_, index) => index !== currentTrackIndex);
+            for (let i = restOfPlaylist.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [restOfPlaylist[i], restOfPlaylist[j]] = [restOfPlaylist[j], restOfPlaylist[i]];
+            }
+            playlist = [currentTrack, ...restOfPlaylist];
+            currentTrackIndex = 0;
+        } else {
+            const currentTrackPath = playlist[currentTrackIndex]?.path;
+            playlist = [...originalPlaylist];
+            currentTrackIndex = playlist.findIndex(track => track.path === currentTrackPath);
+            if (currentTrackIndex === -1 && playlist.length > 0) currentTrackIndex = 0;
+        }
+        renderPlaylist();
+        document.querySelectorAll('.playlist-item').forEach(item => {
+            item.classList.toggle('active', parseInt(item.dataset.index) === currentTrackIndex);
+        });
+    }
+
+    function toggleRepeat() {
+        repeatState = (repeatState + 1) % 3;
+        updateRepeatButtonUI();
+    }
+
+    function updateRepeatButtonUI() {
+        repeatBtn.classList.remove('active-queue', 'active-single');
+        let title = 'Repeat Off';
+        let statusText = '';
+        let iconHTML = `
+            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>`;
+
+        if (repeatState === 1) { // Repeat Queue
+            repeatBtn.classList.add('active-queue');
+            title = 'Repeat Queue';
+            statusText = 'Queue';
+        } else if (repeatState === 2) { // Repeat Single
+            repeatBtn.classList.add('active-single');
+            title = 'Repeat Single';
+            statusText = 'Single';
+            iconHTML = `
+            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                <text x="12" y="14" font-family="Arial, sans-serif" font-size="9" fill="currentColor" text-anchor="middle" dominant-baseline="middle" font-weight="bold">1</text>
+            </svg>`;
+        }
+        
+        repeatBtn.title = title;
+        repeatBtn.innerHTML = iconHTML;
+        repeatStatusText.textContent = statusText;
     }
 
     function formatTime(seconds) {
@@ -1117,12 +1240,6 @@ window.addEventListener('DOMContentLoaded', () => {
         if (duration) {
             progressBar.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
-
-            const fadeDurationSeconds = parseFloat(songFadingDurationSlider.value);
-            if (enableSongFadingInput.checked && !isAutoFadingOut && duration > fadeDurationSeconds && (duration - currentTime) <= fadeDurationSeconds) {
-                isAutoFadingOut = true;
-                playNextTrack();
-            }
         }
     }
 
@@ -1192,427 +1309,36 @@ window.addEventListener('DOMContentLoaded', () => {
         draggedTrackIndex = null;
     });
 
-    function renderPlaylist() {
-        playlistContainer.innerHTML = '';
-        if (playlist.length === 0) {
-            const emptyMessage = document.createElement('div');
-            emptyMessage.className = 'empty-playlist-message';
-            emptyMessage.textContent = "No tracks found in this playlist.";
-            playlistContainer.appendChild(emptyMessage);
-            return;
-        }
-
-        // Filter tracks by search query
-        let filteredTracks = playlist;
-        if (trackSearchQuery) {
-            filteredTracks = playlist.filter(track =>
-                (track.name || '').toLowerCase().includes(trackSearchQuery)
-            );
-        }
-
-        filteredTracks.forEach((track, index) => {
-            const item = document.createElement('div');
-            item.className = 'playlist-item';
-            item.draggable = true; // Make items draggable
-
-            const trackNumber = document.createElement('span');
-            trackNumber.className = 'track-number';
-            trackNumber.textContent = track.originalIndex + 1;
-
-            const trackName = document.createElement('span');
-            trackName.className = 'track-name';
-            const displayName = track.name.replace(/^\d+\s*-\s*/, '');
-            trackName.textContent = displayName;
-            trackName.title = track.name;
-
-            item.appendChild(trackNumber);
-            item.appendChild(trackName);
-
-            if (track.path) {
-                item.dataset.index = index;
-                item.addEventListener('click', () => playTrack(index));
-                item.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    window.electronAPI.showInExplorer(track.path);
-                });
-            } else {
-                item.style.cursor = 'default';
-                item.style.color = 'var(--danger-primary)';
-                item.style.fontWeight = 'bold';
-            }
-            playlistContainer.appendChild(item);
-        });
-    }
-
-    // --- INITIALIZATION ---
-    async function loadAndRenderPlaylists() {
-        showLoader();
-        try {
-            // FIX: Decouple playlist rendering from duration calculation for robustness and speed.
-            // First, fetch and display the list of playlists immediately.
-            appendConsoleMessage('[UI] Attempting to load playlists...');
-            playlists = await window.electronAPI.getPlaylists();
-            appendConsoleMessage(`[UI] Received ${playlists.length} playlists from backend.`);
-    
-            let playlistsToRender = playlists;
-            if (playlistSearchQuery) {
-                playlistsToRender = playlists.filter(p => p.name.toLowerCase().includes(playlistSearchQuery));
-            }
-
-            favoritePlaylistsGrid.innerHTML = '';
-            allPlaylistsGrid.innerHTML = '';
-            if (playlistsToRender.length === 0) {
-                favoritePlaylistsContainer.classList.add('hidden');
-                allPlaylistsGrid.innerHTML = `<div class="empty-playlist-message">No playlists found${playlistSearchQuery ? ' matching your search' : ''}.</div>`;
-                appendConsoleMessage('[UI] No playlists were returned. Check backend logs in the Console tab and ensure the Playlists Folder is set correctly in Settings.');
-                playlist = [];
-                renderPlaylist();
-                tracksHeader.textContent = 'Tracks';
-                activePlaylistPath = null;
-            } else {
-                playlistsToRender.forEach(p => {
-                    if (!p || !p.path) return;
-                    const item = document.createElement('div');
-                    item.className = 'playlist-list-item';
-                    item.dataset.path = p.path;
-    
-                    const addBtn = document.createElement('button');
-                    addBtn.className = 'playlist-add-btn';
-    
-                    const nameSpan = document.createElement('span');
-                    nameSpan.className = 'playlist-name';
-                    nameSpan.textContent = p.name;
-    
-                    item.appendChild(addBtn);
-                    item.appendChild(nameSpan);
-    
-                    nameSpan.addEventListener('click', () => {
-                        activePlaylistPath = p.path;
-                        activeQueuePaths.clear();
-                        activeQueuePaths.add(p.path);
-                        loadQueueTracks();
-                    });
-    
-                    // FIX: Replaced the previous event listener logic with a more robust version
-                    // that correctly handles adding/removing playlists from the queue.
-                    addBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        
-                        const path = p.path;
-                        if (activeQueuePaths.has(path)) {
-                            activeQueuePaths.delete(path);
-                            showNotification('info', 'Playlist Removed', `"${p.name}" removed from mix.`);
-                        } else {
-                            activeQueuePaths.add(path);
-                            showNotification('info', 'Playlist Added', `"${p.name}" added to mix.`);
-                        }
-    
-                        // If the main active playlist was removed, pick a new one from the queue.
-                        if (!activeQueuePaths.has(activePlaylistPath) && activeQueuePaths.size > 0) {
-                            activePlaylistPath = activeQueuePaths.values().next().value;
-                        } 
-                        // If the queue is now empty, clear the active playlist path.
-                        else if (activeQueuePaths.size === 0) {
-                            activePlaylistPath = null;
-                        }
-                        // If this is the first item added to the queue, make it the active one.
-                        else if (activeQueuePaths.size === 1) {
-                            activePlaylistPath = path;
-                        }
-    
-                        loadQueueTracks();
-                    });
-    
-                    item.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        const isFavorited = favoritePlaylists.includes(p.path);
-                        if (isFavorited) {
-                            favoritePlaylists = favoritePlaylists.filter(path => path !== p.path);
-                        } else {
-                            favoritePlaylists.push(p.path);
-                        }
-                        saveSettings();
-                        loadAndRenderPlaylists();
-                        if (isPmInitialized) pmRenderPlaylists();
-                    });
-
-                    if (favoritePlaylists.includes(p.path)) {
-                        favoritePlaylistsGrid.appendChild(item);
-                    } else {
-                        allPlaylistsGrid.appendChild(item);
-                    }
-                });
-                favoritePlaylistsContainer.classList.toggle('hidden', favoritePlaylists.length === 0);
-                updatePlaylistItemsUI();
-            }
-    
-            // Second, calculate the total duration in the background and update the UI when done.
-            window.electronAPI.getLibraryStats().then(stats => {
-                totalPlaylistsCount.textContent = `${stats.playlistCount} Playlists`;
-                totalTracksCount.textContent = `${stats.trackCount} Tracks`;
-            }).catch(err => {
-                console.error("Failed to get library stats:", err);
-                totalPlaylistsCount.textContent = `? Playlists`;
-                totalTracksCount.textContent = `? Tracks`;
-            });
-        } finally {
-            hideLoader();
-        }
-    }
-
-    async function loadQueueTracks() {
-        showLoader();
-        try {
-            if (activeQueuePaths.size === 0) {
-                activePlaylistPath = null;
-                playlist = [];
-                originalPlaylist = [];
-                tracksHeader.textContent = 'Tracks';
-                currentPlaylistTrackCount.textContent = '0 tracks';
-                renderPlaylist();
-                resetPlayerState();
-                updatePlaylistItemsUI();
-                return;
-            }
-    
-            let combinedTracks = [];
-            
-            for (const path of activeQueuePaths) {
-                if (!path) continue;
-                const result = await window.electronAPI.getPlaylistTracks(path);
-                if (result && result.tracks) {
-                    const validTracks = result.tracks.filter(t => t.path);
-                    combinedTracks.push(...validTracks);
-                }
-            }
-    
-            playlist = combinedTracks.map((track, index) => ({ ...track, originalIndex: index }));
-            originalPlaylist = [...playlist];
-            isShuffled = false;
-            shuffleBtn.classList.remove('active');
-    
-            if (activeQueuePaths.size > 1) {
-                tracksHeader.textContent = 'Mixed Playlist';
-            } else {
-                const singlePlaylist = playlists.find(pl => pl.path === activePlaylistPath);
-                tracksHeader.textContent = singlePlaylist ? singlePlaylist.name : 'Tracks';
-            }
-            
-            currentPlaylistTrackCount.textContent = `${combinedTracks.length} tracks`;
-            renderPlaylist();
-            updatePlaylistItemsUI();
-    
-            if (playlist.length > 0 && playlist[0].path) {
-                playTrack(0);
-            } else {
-                resetPlayerState();
-            }
-        } finally {
-            hideLoader();
-        }
-    }
-
-    function updatePlaylistItemsUI() {
-        const isMix = activeQueuePaths.size > 1;
-        document.querySelectorAll('.playlist-list-item').forEach(el => {
-            const path = el.dataset.path;
-            const isInQueue = activeQueuePaths.has(path);
-            const addButton = el.querySelector('.playlist-add-btn');
-
-            // A single selected playlist is 'active'
-            el.classList.toggle('active', !isMix && isInQueue);
-            // All playlists in a multi-playlist selection are 'mixed-in'
-            el.classList.toggle('mixed-in', isMix && isInQueue);
-
-            if (addButton) {
-                addButton.classList.toggle('mixed-in', isInQueue);
-                addButton.textContent = isInQueue ? '−' : '+';
-                addButton.title = isInQueue ? 'Remove from mix' : 'Add to mix';
-            }
-        });
-    }
-
     function playTrack(index) {
         if (index < 0 || index >= playlist.length || !playlist[index].path) return;
 
-        const startPlayback = () => {
-            isAutoFadingOut = false; // Reset fade flag
-            currentTrackIndex = index;
-            const track = playlist[index];
-            audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
-            nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
-            playIcon.classList.add('hidden');
-            pauseIcon.classList.remove('hidden');
-            document.querySelectorAll('.playlist-item').forEach(item => {
-                item.classList.toggle('active', parseInt(item.dataset.index) === index);
-            });
+        currentTrackIndex = index;
+        const track = playlist[index];
+        audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
+        nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
+        playIcon.classList.add('hidden');
+        pauseIcon.classList.remove('hidden');
+        document.querySelectorAll('.playlist-item').forEach(item => {
+            item.classList.toggle('active', parseInt(item.dataset.index) === index);
+        });
 
-            if (enableSongFadingInput.checked) {
-                const fadeDuration = parseFloat(songFadingDurationSlider.value) * 1000;
-                audioPlayer.volume = 0;
-                audioPlayer.play();
-                fadeAudio(lastVolume, fadeDuration);
-            } else {
-                audioPlayer.volume = lastVolume;
-                audioPlayer.play();
-            }
-        };
-
-        if (enableSongFadingInput.checked && !audioPlayer.paused) {
-            const fadeDuration = parseFloat(songFadingDurationSlider.value) * 1000;
-            fadeAudio(0, fadeDuration, startPlayback);
-        } else {
-            startPlayback();
-        }
+        audioPlayer.volume = lastVolume;
+        audioPlayer.play();
     }
 
     function togglePlayPause() {
         if (!audioPlayer.src) return;
 
-        const useFading = enableSongFadingInput.checked;
-        const fadeDuration = parseFloat(songFadingDurationSlider.value) * 1000;
-
         if (audioPlayer.paused) {
             playIcon.classList.add('hidden');
             pauseIcon.classList.remove('hidden');
-            if (useFading) {
-                audioPlayer.volume = 0;
-                audioPlayer.play();
-                fadeAudio(lastVolume, fadeDuration);
-            } else {
-                audioPlayer.play();
-            }
+            audioPlayer.play();
         } else {
             playIcon.classList.remove('hidden');
             pauseIcon.classList.add('hidden');
-            if (useFading) {
-                fadeAudio(0, fadeDuration, () => audioPlayer.pause());
-            } else {
-                audioPlayer.pause();
-            }
+            audioPlayer.pause();
         }
     }
-
-    function playPreviousTrack() {
-        if (currentTrackIndex > 0) playTrack(currentTrackIndex - 1);
-    }
-
-    function playNextTrack() {
-        // Handle repeat single
-        if (repeatState === 2 && currentTrackIndex !== -1) {
-            playTrack(currentTrackIndex);
-            return;
-        }
-
-        const nextIndex = currentTrackIndex + 1;
-        if (nextIndex < playlist.length) {
-            playTrack(nextIndex);
-        } else {
-            // Handle repeat queue
-            if (repeatState === 1) {
-                playTrack(0);
-            } else {
-                // End of queue, no repeat
-                playIcon.classList.remove('hidden');
-                pauseIcon.classList.add('hidden');
-            }
-        }
-    }
-
-    function toggleShuffle() {
-        if (playlist.length < 2) return;
-        isShuffled = !isShuffled;
-        shuffleBtn.classList.toggle('active', isShuffled);
-
-        const currentTrack = playlist[currentTrackIndex];
-
-        if (isShuffled) {
-            // If a track is playing, move it to the top and shuffle the rest.
-            if (currentTrack) {
-                const otherTracks = playlist.filter(track => track.path !== currentTrack.path);
-                // Fisher-Yates shuffle on the rest of the tracks
-                for (let i = otherTracks.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [otherTracks[i], otherTracks[j]] = [otherTracks[j], otherTracks[i]];
-                }
-                playlist = [currentTrack, ...otherTracks];
-                currentTrackIndex = 0;
-            } else {
-                // If no track is playing, just shuffle the whole list.
-                for (let i = playlist.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [playlist[i], playlist[j]] = [playlist[j], playlist[i]];
-                }
-            }
-        } else {
-            // Unshuffle by restoring from the original order
-            playlist = [...originalPlaylist];
-            // Find the new index of the currently playing track to avoid interruption
-            if (currentTrack) {
-                const newIndex = playlist.findIndex(track => track.path === currentTrack.path);
-                currentTrackIndex = newIndex !== -1 ? newIndex : 0;
-            }
-        }
-
-        renderPlaylist();
-        // Re-apply the active state to the currently playing track in the new list order
-        document.querySelectorAll('.playlist-item').forEach(item => {
-            item.classList.toggle('active', parseInt(item.dataset.index) === currentTrackIndex);
-        }
-    );
-}
-
-    function toggleRepeat() {
-        repeatState = (repeatState + 1) % 3; // Cycle through 0, 1, 2
-        updateRepeatButtonUI();
-    }
-
-    function updateRepeatButtonUI() {
-        repeatBtn.classList.remove('active-queue', 'active-single');
-        let title = 'Repeat Off';
-        let statusText = 'Off';
-        let iconHTML = `
-            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-                <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-            </svg>`;
-
-        if (repeatState === 1) { // Repeat Queue
-            repeatBtn.classList.add('active-queue');
-            title = 'Repeat Queue';
-            statusText = 'Queue';
-        } else if (repeatState === 2) { // Repeat Single
-            repeatBtn.classList.add('active-single');
-            title = 'Repeat Single';
-            statusText = 'Single';
-            iconHTML = `
-            <svg class="player-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-                <polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-                <text x="12" y="14" font-family="Arial, sans-serif" font-size="9" fill="currentColor" text-anchor="middle" dominant-baseline="middle" font-weight="bold">1</text>
-            </svg>`;
-        }
-        
-        repeatBtn.title = title;
-        repeatBtn.innerHTML = iconHTML;
-        repeatStatusText.textContent = statusText;
-    }
-
-    function resetPlayerState() {
-        audioPlayer.src = '';
-        nowPlaying.textContent = 'No track selected';
-        playIcon.classList.remove('hidden');
-        pauseIcon.classList.add('hidden');
-        progressBar.style.width = '0%';
-        currentTimeEl.textContent = '0:00';
-        totalDurationEl.textContent = '0:00';
-        isAutoFadingOut = false;
-    }
-
-    // --- Global Media Key Listeners ---
-    window.electronAPI.onMediaKeyPlayPause(togglePlayPause);
-    window.electronAPI.onMediaKeyNext(playNextTrack);
-    window.electronAPI.onMediaKeyPrev(playPreviousTrack);
 
     // --- Console Output Logic ---
     function appendConsoleMessage(message) {
@@ -1706,11 +1432,6 @@ window.addEventListener('DOMContentLoaded', () => {
         themeFadeSlider.value = defaultSettings.themeFadeSpeed || 0.3;
         themeFadeValue.textContent = `${themeFadeSlider.value}s`;
         root.style.setProperty('--theme-fade-speed', `${themeFadeSlider.value}s`);
-        enableSongFadingInput.checked = defaultSettings.enableSongFading || false;
-        const defaultFadeDuration = defaultSettings.songFadingDuration || 0.5;
-        songFadingDurationSlider.value = defaultFadeDuration;
-        songFadingDurationValue.textContent = `${defaultFadeDuration}s`;
-        songFadingDurationContainer.classList.toggle('hidden', !enableSongFadingInput.checked);
         populateThemeGrid();
         saveSettings();
         showNotification('success', 'Settings Reset', 'All settings have been restored to their defaults.');

@@ -75,8 +75,6 @@ function loadConfig() {
                 autoCreatePlaylist: false,
                 favoriteThemes: [],
                 favoritePlaylists: [],
-                enableSongFading: false,
-                songFadingDuration: 0.5,
                 normalizeVolume: false,
                 hideSearchBars: false,
                 playlistsFolderPath: ''
@@ -370,8 +368,6 @@ app.whenReady().then(() => {
             downloadsPath: defaultDownloadsPath,
             favoriteThemes: [],
             favoritePlaylists: [],
-            enableSongFading: false,
-            songFadingDuration: 0.5,
             normalizeVolume: false,
             hideSearchBars: false,
         };
