@@ -141,10 +141,10 @@ async function loadQueueTracks(isRefresh = false) {
         return;
     }
 
-    const isPlaying = audioPlayer.currentTime > 0 && !audioPlayer.paused;
-    let currentlyPlayingTrackPath = null;
-    if (isPlaying && ctx.state.currentTrackIndex >= 0 && ctx.state.currentTrackIndex < ctx.state.playlist.length) {
-        currentlyPlayingTrackPath = ctx.state.playlist[ctx.state.currentTrackIndex].path;
+    const wasPlaying = audioPlayer.currentTime > 0 && !audioPlayer.paused;
+    let previouslyPlayingTrackPath = null;
+    if (wasPlaying && ctx.state.currentTrackIndex >= 0 && ctx.state.currentTrackIndex < ctx.state.playlist.length) {
+        previouslyPlayingTrackPath = ctx.state.playlist[ctx.state.currentTrackIndex].path;
     }
 
     try {
@@ -159,17 +159,28 @@ async function loadQueueTracks(isRefresh = false) {
             ctx.state.playlist.sort(() => Math.random() - 0.5);
         }
 
-        if (currentlyPlayingTrackPath) {
-            const newIndex = ctx.state.playlist.findIndex(track => track.path === currentlyPlayingTrackPath);
-            ctx.state.currentTrackIndex = newIndex; // Will be -1 if not found, which is fine
-        } else if (!isRefresh) {
-            ctx.state.currentTrackIndex = ctx.state.playlist.length > 0 ? 0 : -1;
+        const newIndexOfPlayingTrack = previouslyPlayingTrackPath 
+            ? ctx.state.playlist.findIndex(track => track.path === previouslyPlayingTrackPath) 
+            : -1;
+
+        let shouldPlayNewTrack = false;
+
+        if (newIndexOfPlayingTrack !== -1) {
+            // The currently playing track is still in the new queue.
+            ctx.state.currentTrackIndex = newIndexOfPlayingTrack;
         } else {
+            // The currently playing track is no longer in the queue, or nothing was playing.
+            if (wasPlaying) {
+                // A track was playing, but it's been removed from the queue. Play the new first track.
+                shouldPlayNewTrack = true;
+            } else if (!isRefresh) {
+                // Nothing was playing, and this isn't a manual refresh. Auto-play the new selection.
+                shouldPlayNewTrack = true;
+            }
             ctx.state.currentTrackIndex = ctx.state.playlist.length > 0 ? 0 : -1;
         }
 
-        renderPlaylist();
-
+        // Update UI headers
         let headerText;
         if (ctx.state.activeQueuePaths.size === 1) {
             const singlePlaylistPath = ctx.state.activeQueuePaths.values().next().value;
@@ -180,21 +191,23 @@ async function loadQueueTracks(isRefresh = false) {
         }
         tracksHeader.textContent = headerText;
         currentPlaylistTrackCount.textContent = `${combinedTracks.length} tracks`;
+        
+        renderPlaylist();
         updatePlaylistItemsUI();
 
-        if (ctx.state.playlist.length > 0) {
-            if (isRefresh) {
-                const track = ctx.state.playlist[0];
-                audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
-                nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
-                playIcon.classList.remove('hidden');
-                pauseIcon.classList.add('hidden');
-            } else if (!isPlaying) {
-                playTrack(0);
-            }
-        } else {
+        if (shouldPlayNewTrack && ctx.state.currentTrackIndex !== -1) {
+            playTrack(ctx.state.currentTrackIndex);
+        } else if (ctx.state.currentTrackIndex === -1) {
             resetPlayerState();
+        } else if (isRefresh && !wasPlaying && ctx.state.playlist.length > 0) {
+            // On a manual refresh where nothing was playing, just load the track info.
+            const track = ctx.state.playlist[0];
+            audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
+            nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
+            playIcon.classList.remove('hidden');
+            pauseIcon.classList.add('hidden');
         }
+
     } catch (error) {
         console.error("Error loading queue tracks:", error);
         ctx.helpers.showNotification('error', 'Load Error', 'Could not load tracks.');
