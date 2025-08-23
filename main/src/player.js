@@ -158,17 +158,30 @@ async function loadQueueTracks(isRefresh = false) {
         currentPlaylistTrackCount.textContent = `${combinedTracks.length} tracks`;
         updatePlaylistItemsUI();
 
+        const isPlaying = ctx.elements.audioPlayer.currentTime > 0 && !ctx.elements.audioPlayer.paused;
+
         if (ctx.state.playlist.length > 0) {
             if (!isRefresh) {
-                playTrack(0);
+                // New playlist selection. Only auto-play if nothing is currently playing.
+                if (!isPlaying) {
+                    playTrack(0);
+                }
             } else {
+                // On refresh, just load the first track's info but don't play.
+                // This stops current playback which is probably desired for a refresh.
                 ctx.state.currentTrackIndex = 0;
                 const track = ctx.state.playlist[0];
                 ctx.elements.audioPlayer.src = `file:///${encodeURI(track.path.replace(/\\/g, '/'))}`;
                 nowPlaying.textContent = track.name.replace(/^\d+\s*-\s*/, '');
+                // Ensure UI reflects paused state
+                ctx.elements.playIcon.classList.remove('hidden');
+                ctx.elements.pauseIcon.classList.add('hidden');
             }
         } else {
-            resetPlayerState();
+            // The new queue is empty. Only reset the player if nothing was playing.
+            if (!isPlaying) {
+                resetPlayerState();
+            }
         }
     } catch (error) {
         console.error("Error loading queue tracks:", error);
