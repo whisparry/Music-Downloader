@@ -124,9 +124,26 @@ function loadCache() {
     }
 }
 
+function safeWriteFileSync(filePath, data) {
+    const tempPath = `${filePath}.tmp-${Date.now()}`;
+    try {
+        fs.writeFileSync(tempPath, data, 'utf-8');
+        fs.renameSync(tempPath, filePath);
+    } catch (error) {
+        if (fs.existsSync(tempPath)) {
+            try {
+                fs.unlinkSync(tempPath);
+            } catch (unlinkError) {
+                console.error('Failed to clean up temp file:', unlinkError);
+            }
+        }
+        throw error;
+    }
+}
+
 function saveStats() {
     try {
-        fs.writeFileSync(statsPath, JSON.stringify(stats, null, 4));
+        safeWriteFileSync(statsPath, JSON.stringify(stats, null, 4));
     } catch (error) {
         console.error('Failed to save stats file:', error);
     }
@@ -134,7 +151,7 @@ function saveStats() {
 
 function saveCache() {
     try {
-        fs.writeFileSync(cachePath, JSON.stringify(linkCache, null, 4));
+        safeWriteFileSync(cachePath, JSON.stringify(linkCache, null, 4));
     } catch (error) {
         console.error('Failed to save link cache file:', error);
     }
@@ -376,7 +393,7 @@ app.whenReady().then(() => {
     ipcMain.handle('save-settings', (event, newSettings) => {
         try {
             config = { ...config, ...newSettings };
-            fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
+            safeWriteFileSync(configPath, JSON.stringify(config, null, 4));
             downloadsDir = config.downloadsPath;
             if (config.spotify) {
                 spotifyApi.setClientId(config.spotify.clientId);
@@ -1064,14 +1081,16 @@ autoUpdater.on('update-downloaded', (info) => {
         });
         notification.show();
         notification.on('click', () => {
-            log.info('Restart notification clicked. Quitting and installing...');
-            autoUpdater.quitAndInstall();
+            log.info('Restart notification clicked. Quitting and installing silently...');
+            app.isQuitting = true;
+            autoUpdater.quitAndInstall(true, true);
         });
     }
 });
 
 ipcMain.on('restart-app', () => {
-    autoUpdater.quitAndInstall();
+    app.isQuitting = true;
+    autoUpdater.quitAndInstall(true, true);
 });
 
 // --- ERROR HANDLING ---
