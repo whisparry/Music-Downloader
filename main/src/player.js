@@ -349,13 +349,30 @@ export function initializePlayer(newCtx) {
     shuffleBtn.addEventListener('click', toggleShuffle);
     repeatBtn.addEventListener('click', toggleRepeat);
 
-    progressBarContainer.addEventListener('click', (e) => {
+    const handleSeek = (e) => {
         const { duration } = audioPlayer;
-        if (duration) {
+        if (!isNaN(duration) && duration > 0) {
             const rect = progressBarContainer.getBoundingClientRect();
-            const percent = (e.clientX - rect.left) / rect.width;
+            let percent = (e.clientX - rect.left) / rect.width;
+            percent = Math.max(0, Math.min(1, percent)); // Clamp between 0 and 1
             audioPlayer.currentTime = percent * duration;
+            updateProgressBar(); // Immediately update UI for responsiveness
         }
+    };
+
+    const onMouseMove = (e) => {
+        handleSeek(e);
+    };
+
+    const onMouseUp = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    progressBarContainer.addEventListener('mousedown', (e) => {
+        handleSeek(e); // Seek on initial click
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
     });
 
     volumeSlider.addEventListener('input', () => {
