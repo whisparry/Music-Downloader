@@ -132,6 +132,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const spotifyLink = document.getElementById('spotify-link');
     const spotifySearchInput = document.getElementById('spotify-search-input');
     const spotifyResultsDropdown = document.getElementById('spotify-results-dropdown');
+    const spotifyFilterBtn = document.getElementById('spotify-filter-btn');
+    const spotifyFilterDropdown = document.getElementById('spotify-filter-dropdown');
+    const spotifySearchLimitInput = document.getElementById('spotify-search-limit');
 
     // --- STATE & CONTEXT (Centralized) ---
     const state = {
@@ -157,6 +160,7 @@ window.addEventListener('DOMContentLoaded', () => {
         playlistSearchQuery: '',
         lastVolume: 1,
         spotifySearchDebounce: null,
+        spotifySearchType: 'playlist',
     };
 
     let playerAPI = {}; // To hold API from player module
@@ -171,6 +175,7 @@ window.addEventListener('DOMContentLoaded', () => {
             favoritePlaylists: state.favoritePlaylists,
             fileExtension: fileExtensionInput.value,
             downloadThreads: parseInt(downloadThreadsInput.value, 10),
+            spotifySearchLimit: parseInt(spotifySearchLimitInput.value, 10),
             spotify: { clientId: clientIdInput.value, clientSecret: clientSecretInput.value },
             downloadsPath: downloadsPathInput.value,
             playlistsFolderPath: playlistsPathInput.value,
@@ -186,7 +191,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, updateYtdlpBtn, clearCacheBtn, spotifyLink },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput },
         state: state,
         helpers: { showLoader, hideLoader, saveSettings },
         get playerAPI() { return playerAPI; } // Getter to ensure it's accessed after initialization
@@ -213,6 +218,25 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Spotify Playlist Search ---
+    spotifyFilterBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        spotifyFilterDropdown.classList.toggle('hidden');
+    });
+
+    spotifyFilterDropdown.addEventListener('click', (e) => {
+        if (e.target.classList.contains('spotify-filter-item')) {
+            document.querySelectorAll('.spotify-filter-item').forEach(el => el.classList.remove('active'));
+            e.target.classList.add('active');
+            state.spotifySearchType = e.target.dataset.type;
+            const typeName = e.target.textContent;
+            spotifySearchInput.placeholder = `Search Spotify ${typeName}...`;
+            spotifyFilterDropdown.classList.add('hidden');
+            if (spotifySearchInput.value.trim().length >= 3) {
+                spotifySearchInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        }
+    });
+
     spotifySearchInput.addEventListener('input', () => {
         clearTimeout(state.spotifySearchDebounce);
         const query = spotifySearchInput.value.trim();
@@ -223,7 +247,8 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         state.spotifySearchDebounce = setTimeout(async () => {
-            const results = await window.electronAPI.searchSpotifyPlaylists(query);
+            const limit = parseInt(spotifySearchLimitInput.value, 10) || 10;
+            const results = await window.electronAPI.searchSpotifyPlaylists({ query, type: state.spotifySearchType, limit });
             spotifyResultsDropdown.innerHTML = '';
 
             if (results.error) {
@@ -244,17 +269,33 @@ window.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            results.forEach(playlist => {
-                const item = document.createElement('div');
-                item.className = 'spotify-result-item';
-                item.innerHTML = `<p class="spotify-result-name">${playlist.name}</p><p class="spotify-result-owner">by ${playlist.owner}</p>`;
-                item.addEventListener('click', () => {
-                    linksInput.value += (linksInput.value ? '\n' : '') + playlist.url;
+            results.forEach(item => {
+                const resultEl = document.createElement('div');
+                resultEl.className = 'spotify-result-item';
+
+                let ownerText = '';
+                if (item.type === 'Playlist') ownerText = `by ${item.owner}`;
+                else if (item.type === 'Track' || item.type === 'Album') ownerText = `by ${item.artist}`;
+
+                let typeLabel = '';
+                if (state.spotifySearchType === 'all' && item.type) {
+                    typeLabel = `<span class="spotify-result-type">${item.type}</span>`;
+                }
+
+                resultEl.innerHTML = `
+                    <div class="spotify-result-main">
+                        <p class="spotify-result-name" title="${item.name}">${item.name}</p>
+                        ${typeLabel}
+                    </div>
+                    <p class="spotify-result-owner">${ownerText}</p>`;
+                
+                resultEl.addEventListener('click', () => {
+                    linksInput.value += (linksInput.value ? '\n' : '') + item.url;
                     spotifySearchInput.value = '';
                     spotifyResultsDropdown.classList.add('hidden');
                     linksInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger clear button check
                 });
-                spotifyResultsDropdown.appendChild(item);
+                spotifyResultsDropdown.appendChild(resultEl);
             });
             spotifyResultsDropdown.classList.remove('hidden');
         }, 300);
@@ -263,6 +304,9 @@ window.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (e) => {
         if (!spotifySearchInput.contains(e.target) && !spotifyResultsDropdown.contains(e.target)) {
             spotifyResultsDropdown.classList.add('hidden');
+        }
+        if (!spotifyFilterBtn.contains(e.target) && !spotifyFilterDropdown.contains(e.target)) {
+            spotifyFilterDropdown.classList.add('hidden');
         }
     });
 
@@ -462,8 +506,9 @@ window.addEventListener('DOMContentLoaded', () => {
             setToggle(hideTrackNumbersInput, 'hide-track-numbers', currentConfig.hideTrackNumbers || false);
             setToggle(hideSearchBarsInput, 'hide-search-bars', currentConfig.hideSearchBars || false);
             normalizeVolumeInput.checked = currentConfig.normalizeVolume || false;
+            spotifySearchLimitInput.value = currentConfig.spotifySearchLimit || 10;
         }
-        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput].forEach(input => input.addEventListener('change', saveSettings));
+        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, spotifySearchLimitInput].forEach(input => input.addEventListener('change', saveSettings));
         hideRefreshButtonsInput.addEventListener('change', () => body.classList.toggle('hide-refresh-buttons', hideRefreshButtonsInput.checked));
         hidePlaylistCountsInput.addEventListener('change', () => body.classList.toggle('hide-playlist-counts', hidePlaylistCountsInput.checked));
         hideTrackNumbersInput.addEventListener('change', () => body.classList.toggle('hide-track-numbers', hideTrackNumbersInput.checked));
@@ -474,6 +519,13 @@ window.addEventListener('DOMContentLoaded', () => {
             if (isNaN(value)) return;
             if (value > max) downloadThreadsInput.value = max;
             else if (value < min && downloadThreadsInput.value !== '') downloadThreadsInput.value = min;
+        });
+        spotifySearchLimitInput.addEventListener('input', () => {
+            const max = parseInt(spotifySearchLimitInput.max, 10), min = parseInt(spotifySearchLimitInput.min, 10);
+            let value = parseInt(spotifySearchLimitInput.value, 10);
+            if (isNaN(value)) return;
+            if (value > max) spotifySearchLimitInput.value = max;
+            else if (value < min && spotifySearchLimitInput.value !== '') spotifySearchLimitInput.value = min;
         });
         populateThemeGrid();
     };
@@ -612,6 +664,7 @@ window.addEventListener('DOMContentLoaded', () => {
         clientSecretInput.value = defaultSettings.spotify.clientSecret;
         downloadsPathInput.value = defaultSettings.downloadsPath;
         autoCreatePlaylistInput.checked = defaultSettings.autoCreatePlaylist || false;
+        spotifySearchLimitInput.value = defaultSettings.spotifySearchLimit || 10;
         const setToggle = (input, bodyClass, value) => {
             input.checked = value;
             body.classList.toggle(bodyClass, value);

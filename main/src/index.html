@@ -5,7 +5,10 @@
     <!-- FIX: Add a Content Security Policy to address the Electron security warning. -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
     <title>SoundLink</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/views.css">
 </head>
 <body>
     <div class="title-bar">
@@ -77,9 +80,20 @@
                         <button class="clear-btn hidden">&times;</button>
                     </div>
                     <div class="spotify-search-container">
-                        <div class="input-container">
-                           <input type="text" id="spotify-search-input" placeholder="Or search for a Spotify playlist...">
-                           <button class="clear-btn hidden">&times;</button>
+                         <div class="search-bar-wrapper">
+                            <div class="input-container">
+                               <input type="text" id="spotify-search-input" placeholder="Search Spotify Playlists...">
+                               <button class="clear-btn hidden">&times;</button>
+                           </div>
+                           <button id="spotify-filter-btn" title="Filter search type">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                           </button>
+                        </div>
+                       <div id="spotify-filter-dropdown" class="spotify-filter-dropdown hidden">
+                            <div class="spotify-filter-item active" data-type="playlist">Playlists</div>
+                            <div class="spotify-filter-item" data-type="track">Tracks</div>
+                            <div class="spotify-filter-item" data-type="album">Albums</div>
+                            <div class="spotify-filter-item" data-type="all">All</div>
                        </div>
                        <div id="spotify-results-dropdown" class="spotify-results-dropdown hidden"></div>
                    </div>
@@ -268,6 +282,10 @@
                 <div class="settings-group">
                     <label for="downloadThreads">Download Threads</label>
                     <input type="number" id="downloadThreads" placeholder="1-20" min="1">
+                </div>
+                <div class="settings-group">
+                    <label for="spotify-search-limit">Spotify Search Result Limit</label>
+                    <input type="number" id="spotify-search-limit" placeholder="5-50" min="5" max="50">
                 </div>
                 <div class="settings-group toggle-switch-container">
                     <label for="autoCreatePlaylist">Automatically Create Playlist</label>

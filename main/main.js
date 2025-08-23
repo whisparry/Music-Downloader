@@ -67,6 +67,7 @@ function loadConfig() {
                 theme: 'dark',
                 fileExtension: 'm4a',
                 downloadThreads: 3,
+                spotifySearchLimit: 10,
                 tabSwitchSpeed: 0.2,
                 dropdownSpeed: 0.4,
                 themeFadeSpeed: 0.3,
@@ -357,6 +358,7 @@ app.whenReady().then(() => {
             theme: 'dark',
             fileExtension: 'm4a',
             downloadThreads: 3,
+            spotifySearchLimit: 10,
             tabSwitchSpeed: 0.2,
             dropdownSpeed: 0.4,
             themeFadeSpeed: 0.3,
@@ -595,25 +597,76 @@ app.whenReady().then(() => {
 
     // --- DOWNLOAD & SPOTIFY LOGIC ---
 
-    ipcMain.handle('search-spotify-playlists', async (event, query) => {
+    ipcMain.handle('search-spotify-playlists', async (event, { query, type, limit }) => {
         if (!query || query.trim().length < 3) {
             return [];
         }
         try {
             await refreshSpotifyToken();
-            const data = await spotifyApi.searchPlaylists(query, { limit: 10 });
-            return data.body.playlists.items
-                .filter(p => p) // FIX: Filter out any null items from the Spotify API response.
-                .map(p => ({
-                name: p.name,
-                owner: p.owner.display_name,
-                url: p.external_urls.spotify
-            }));
+            const searchLimit = limit && limit >= 5 && limit <= 50 ? limit : 10;
+    
+            const searchFunctions = {
+                playlist: async () => {
+                    const data = await spotifyApi.searchPlaylists(query, { limit: searchLimit });
+                    return data.body.playlists.items
+                        .filter(p => p)
+                        .map(p => ({
+                            name: p.name,
+                            owner: p.owner.display_name,
+                            url: p.external_urls.spotify,
+                            type: 'Playlist'
+                        }));
+                },
+                track: async () => {
+                    const data = await spotifyApi.searchTracks(query, { limit: searchLimit });
+                    return data.body.tracks.items
+                        .filter(t => t)
+                        .map(t => ({
+                            name: t.name,
+                            artist: t.artists.map(a => a.name).join(', '),
+                            url: t.external_urls.spotify,
+                            type: 'Track'
+                        }));
+                },
+                album: async () => {
+                    const data = await spotifyApi.searchAlbums(query, { limit: searchLimit });
+                    return data.body.albums.items
+                        .filter(a => a)
+                        .map(a => ({
+                            name: a.name,
+                            artist: a.artists.map(a => a.name).join(', '),
+                            url: a.external_urls.spotify,
+                            type: 'Album'
+                        }));
+                },
+                all: async () => {
+                    const perTypeLimit = Math.max(1, Math.floor(searchLimit / 3));
+                    const [playlists, tracks, albums] = await Promise.all([
+                        spotifyApi.searchPlaylists(query, { limit: perTypeLimit }),
+                        spotifyApi.searchTracks(query, { limit: perTypeLimit }),
+                        spotifyApi.searchAlbums(query, { limit: perTypeLimit + (searchLimit % 3) })
+                    ]);
+    
+                    const playlistResults = playlists.body.playlists.items.filter(p => p).map(p => ({ name: p.name, owner: p.owner.display_name, url: p.external_urls.spotify, type: 'Playlist' }));
+                    const trackResults = tracks.body.tracks.items.filter(t => t).map(t => ({ name: t.name, artist: t.artists.map(a => a.name).join(', '), url: t.external_urls.spotify, type: 'Track' }));
+                    const albumResults = albums.body.albums.items.filter(a => a).map(a => ({ name: a.name, artist: a.artists.map(a => a.name).join(', '), url: a.external_urls.spotify, type: 'Album' }));
+    
+                    return [...playlistResults, ...trackResults, ...albumResults];
+                }
+            };
+    
+            if (searchFunctions[type]) {
+                return await searchFunctions[type]();
+            } else {
+                return await searchFunctions.playlist();
+            }
+    
         } catch (error) {
             console.error('Spotify search failed:', error);
-            // Send a user-friendly error back to the renderer
             let errorMessage = 'Could not perform search.';
-            if (error.message.includes('token')) {
+            if (error.body && error.body.error) {
+                errorMessage = `Spotify Error: ${error.body.error.message}`;
+            } else if (error.message.includes('token')) {
                 errorMessage = 'Spotify auth failed. Check credentials in Settings.';
             }
             return { error: errorMessage };
