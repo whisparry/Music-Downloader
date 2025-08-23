@@ -721,15 +721,22 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Auto Updater Logic ---
-    window.electronAPI.onShowCheckingForUpdateNotification(() => showNotification('info', 'Auto-Updater', 'Checking for Updates!'));
+    window.electronAPI.onShowCheckingForUpdateNotification(() => showNotification('info', 'Auto-Updater', 'Checking for updates...'));
     window.electronAPI.onUpdateAvailable(() => {
         updateNotification.classList.remove('hidden');
         updateMessage.textContent = 'A new update is available. Downloading now...';
+        showNotification('info', 'Update Found', 'Downloading new version...');
+    });
+    window.electronAPI.onUpdateDownloadProgress((progressObj) => {
+        updateNotification.classList.remove('hidden');
+        const progress = progressObj.percent.toFixed(1);
+        updateMessage.textContent = `Downloading update... ${progress}%`;
     });
     window.electronAPI.onUpdateDownloaded(() => {
         updateNotification.classList.remove('hidden');
-        updateMessage.textContent = 'Update downloaded. It will be installed on restart.';
+        updateMessage.textContent = 'Update downloaded. Click the button to install on restart.';
         restartBtn.classList.remove('hidden');
+        showNotification('success', 'Update Ready', 'Click the restart button or the system notification to install.');
     });
     restartBtn.addEventListener('click', () => window.electronAPI.restartApp());
 

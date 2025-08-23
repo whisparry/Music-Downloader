@@ -1034,13 +1034,6 @@ autoUpdater.on('checking-for-update', () => {
 
 autoUpdater.on('update-available', (info) => {
     log.info('Update available.', info);
-    if (Notification.isSupported()) {
-        new Notification({
-            title: 'SoundLink',
-            body: 'New update available!',
-            icon: trayIconPath
-        }).show();
-    }
     mainWindow.webContents.send('update-available');
 });
 
@@ -1057,11 +1050,25 @@ autoUpdater.on('error', (err) => {
 autoUpdater.on('download-progress', (progressObj) => {
     const log_message = `Downloaded ${progressObj.percent.toFixed(2)}% (${(progressObj.bytesPerSecond / 1024).toFixed(2)} KB/s)`;
     log.info(log_message);
+    mainWindow.webContents.send('update-download-progress', progressObj);
 });
 
 autoUpdater.on('update-downloaded', (info) => {
     log.info('Update downloaded.', info);
     mainWindow.webContents.send('update-downloaded');
+
+    if (Notification.isSupported()) {
+        const notification = new Notification({
+            title: 'SoundLink Update Ready',
+            body: 'A new version has been downloaded. Click to restart and install.',
+            icon: trayIconPath
+        });
+        notification.show();
+        notification.on('click', () => {
+            log.info('Restart notification clicked. Quitting and installing...');
+            autoUpdater.quitAndInstall();
+        });
+    }
 });
 
 ipcMain.on('restart-app', () => {

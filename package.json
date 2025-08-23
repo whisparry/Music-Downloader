@@ -1,6 +1,6 @@
 {
   "name": "soundlink",
-  "version": "9.21.0",
+  "version": "9.22.0",
   "description": "Desktop app to download from Spotify and YouTube.",
   "main": "main/main.js",
   "scripts": {
@@ -66,6 +66,7 @@
       "oneClick": true,
       "perMachine": false,
       "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
       "artifactName": "SoundLink-Setup-${version}.${ext}"
     }
   }
