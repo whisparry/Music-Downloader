@@ -1043,6 +1043,8 @@ body.hide-search-bars .playlist-search-bar {
 .player-controls-bar {
     grid-row-start: 2; /* Position in the bottom row of the grid */
     width: 100%;
+    max-width: 1400px; /* Set a max-width for the entire control bar */
+    margin: 0 auto; /* Center the control bar within the available space */
     box-sizing: border-box;
     z-index: 20;
     display: grid;
@@ -1072,9 +1074,6 @@ body.hide-search-bars .playlist-search-bar {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 1300px;
-    margin-left: auto;
-    margin-right: auto;
     text-align: center;
 }
 
@@ -1084,8 +1083,6 @@ body.hide-search-bars .playlist-search-bar {
     align-items: center;
     gap: 15px;
     width: 100%;
-    max-width: 1600px;
-    margin: 0 auto;
 }
 
 #progress-bar-container {
