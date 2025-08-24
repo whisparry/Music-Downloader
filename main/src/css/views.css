@@ -685,27 +685,27 @@ input[type=range]::-moz-range-thumb {
     white-space: nowrap;
 }
 
-/* --- Player & Playlist Management Views --- */
+/* --- PLAYER & PLAYLIST MANAGEMENT REDESIGN --- */
+
+/* Base container for both complex views */
 #player-view, #playlist-management-view {
-    /* display: flex; <-- This was removed to prevent the view from always being visible due to CSS specificity. */
     flex-direction: column;
     height: 100%;
     box-sizing: border-box;
-}
-
-/* FIX: Apply flex display only when the view is active to respect the display:none default. */
-#player-view.active-view,
-#playlist-management-view.active-view {
-    display: flex;
+    padding: 0; /* Remove padding from the root view element */
 }
 
 #player-view.active-view {
-    /* DEFINITIVE FIX: Consolidate all padding here. Set left to 0 to make it flush with the sidebar. */
-    padding: 40px 20px 20px 0;
+    display: grid; /* Use Grid for the player */
 }
 
+#playlist-management-view.active-view {
+    display: flex; /* Use Flex for playlist management */
+}
+
+/* --- Playlist Management View Layout --- */
 #playlist-management-view {
-    padding: 20px; /* Retain original padding for this view. */
+    padding: 20px; /* Add padding back for this specific view */
 }
 
 #playlist-management-view h1 {
@@ -715,32 +715,65 @@ input[type=range]::-moz-range-thumb {
     flex-shrink: 0;
 }
 
-.player-main-content {
+.pm-content-area {
     flex-grow: 1;
     display: flex;
-    gap: 20px; /* FIX: Use gap for spacing, not margin. */
-    min-height: 0; /* Critical for flexbox children scrolling */
-    width: 100%;
-    padding: 0; /* FIX: Remove all padding. It is now handled by the parent #player-view. */
-    box-sizing: border-box;
+    gap: 20px;
+    min-height: 0;
 }
 
-.playlists-panel, .tracks-panel {
+.pm-playlists-panel, .pm-tracks-panel {
     display: flex;
     flex-direction: column;
     background-color: var(--bg-secondary);
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    min-width: 0; /* Prevents flexbox overflow */
+    min-width: 0;
 }
 
-.playlists-panel {
-    flex: 0 0 250px; /* Fixed width for playlist panel */
+.pm-playlists-panel {
+    flex: 0 0 250px;
 }
 
-.tracks-panel {
-    flex-grow: 1; /* Takes up remaining space */
-    margin-left: 0; /* FIX: Remove margin, gap is used on parent now. */
+.pm-tracks-panel {
+    flex-grow: 1;
+}
+
+
+/* --- Player View Redesign (Grid-based) --- */
+
+/* Main view container is a grid with two rows: content and controls */
+#player-view {
+    grid-template-rows: 1fr auto; /* Content grows, controls are fixed height */
+    overflow: hidden; /* Prevent scrollbars on the main container */
+}
+
+/* The content area is also a grid, with two columns */
+.player-content-area {
+    display: grid;
+    grid-template-columns: 300px 1fr; /* Fixed playlist panel, flexible track panel */
+    gap: 20px;
+    padding: 40px 20px 20px 20px; /* Apply consistent padding for a clean look */
+    box-sizing: border-box;
+    min-height: 0; /* Essential for grid children with overflow */
+}
+
+/* The two panels inside the content area */
+.player-playlists-panel, .player-tracks-panel {
+    display: flex; /* Use flexbox for the internal layout of the panels */
+    flex-direction: column;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    min-height: 0; /* Prevent panels from growing too large */
+}
+
+/* The bottom controls bar */
+.player-controls-bar {
+    padding: 15px 20px 20px 20px;
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-primary);
+    z-index: 20;
 }
 
 .panel-header {
@@ -1034,15 +1067,10 @@ body.hide-search-bars .playlist-search-bar {
     color: var(--accent-text-color);
 }
 
-.player-controls {
+.player-controls-bar {
     flex-shrink: 0;
     width: 100%;
-    /* FIX: Remove horizontal/bottom padding. Add top padding for spacing from content. */
-    padding: 15px 0 0 0;
-    margin-top: 0; /* FIX: Reset margin-top as padding is now used for spacing. */
-    border-top: 1px solid var(--border-color);
     text-align: center;
-    background-color: var(--bg-primary);
     box-sizing: border-box;
     z-index: 20;
 }
