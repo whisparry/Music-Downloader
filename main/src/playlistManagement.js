@@ -31,34 +31,6 @@ async function pmRenderTracks(playlistPath) {
                 e.preventDefault();
                 const menuItems = [
                     {
-                        label: 'Play',
-                        action: async () => {
-                            ctx.helpers.ensurePlayerInitialized();
-                            ctx.state.activePlaylistPath = playlistPath;
-                            ctx.state.activeQueuePaths.clear();
-                            ctx.state.activeQueuePaths.add(playlistPath);
-                            await ctx.playerAPI.loadQueueTracks();
-                            const trackIndex = ctx.state.playlist.findIndex(t => t.path === track.path);
-                            if (trackIndex !== -1) {
-                                ctx.playerAPI.playTrack(trackIndex);
-                            }
-                            ctx.helpers.showView(playerView, playerBtn);
-                        }
-                    },
-                    {
-                        label: 'Add Playlist to Queue',
-                        action: async () => {
-                            ctx.state.activeQueuePaths.add(playlistPath);
-                            ctx.state.activePlaylistPath = null;
-                            if (ctx.state.isPlayerInitialized) {
-                                await ctx.playerAPI.loadQueueTracks();
-                            }
-                            const playlist = ctx.state.playlists.find(p => p.path === playlistPath);
-                            ctx.helpers.showNotification('info', 'Queue Updated', `Added "${playlist.name}" to the queue.`);
-                        }
-                    },
-                    { type: 'separator' },
-                    {
                         label: 'Rename',
                         action: () => trackNameSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
                     },
@@ -155,32 +127,6 @@ async function pmRenderPlaylists() {
                 e.preventDefault();
                 const playlistNameSpan = item.querySelector('.playlist-name');
                 const menuItems = [
-                    {
-                        label: 'Play',
-                        action: async () => {
-                            ctx.helpers.ensurePlayerInitialized();
-                            ctx.state.activePlaylistPath = p.path;
-                            ctx.state.activeQueuePaths.clear();
-                            ctx.state.activeQueuePaths.add(p.path);
-                            await ctx.playerAPI.loadQueueTracks();
-                            if (ctx.state.playlist.length > 0) {
-                                ctx.playerAPI.playTrack(0);
-                            }
-                            ctx.helpers.showView(playerView, playerBtn);
-                        }
-                    },
-                    {
-                        label: 'Add to Queue',
-                        action: async () => {
-                            ctx.state.activeQueuePaths.add(p.path);
-                            ctx.state.activePlaylistPath = null; // It's a mixed queue now
-                            if (ctx.state.isPlayerInitialized) {
-                                await ctx.playerAPI.loadQueueTracks();
-                            }
-                            ctx.helpers.showNotification('info', 'Queue Updated', `Added "${p.name}" to the queue.`);
-                        }
-                    },
-                    { type: 'separator' },
                     {
                         label: 'Rename',
                         action: () => playlistNameSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))

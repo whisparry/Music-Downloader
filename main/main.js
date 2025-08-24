@@ -316,17 +316,6 @@ function setupAutoUpdaters() {
 app.whenReady().then(() => {
     createWindow();
 
-    // Register global keyboard shortcuts for media keys
-    globalShortcut.register('MediaPlayPause', () => {
-        mainWindow.webContents.send('media-key-play-pause');
-    });
-    globalShortcut.register('MediaNextTrack', () => {
-        mainWindow.webContents.send('media-key-next');
-    });
-    globalShortcut.register('MediaPreviousTrack', () => {
-        mainWindow.webContents.send('media-key-prev');
-    });
-
     setupAutoUpdaters();
 
     app.on('activate', () => {

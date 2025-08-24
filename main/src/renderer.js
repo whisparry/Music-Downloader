@@ -1,5 +1,4 @@
 import { themeNames, themeColors } from './themes.js';
-import { initializePlayer } from './player.js';
 import { initializePlaylistManagement } from './playlistManagement.js';
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -16,11 +15,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const statsBtn = document.getElementById('stats-btn');
     const notificationHistoryBtn = document.getElementById('notification-history-btn');
     const helpBtn = document.getElementById('help-btn');
-    const shuffleBtn = document.getElementById('shuffle-btn');
-    const repeatBtn = document.getElementById('repeat-btn');
-    const repeatStatusText = document.getElementById('repeat-status-text');
-    const refreshPlaylistsBtn = document.getElementById('refresh-playlists-btn');
-    const refreshTracksBtn = document.getElementById('refresh-tracks-btn');
     const homeView = document.getElementById('home-view');
     const settingsView = document.getElementById('settings-view');
     const advancedSettingsView = document.getElementById('advanced-settings-view');
@@ -60,33 +54,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const changePathBtn = document.getElementById('change-path-btn');
     const playlistsPathInput = document.getElementById('playlistsPath');
     const changePlaylistsPathBtn = document.getElementById('change-playlists-path-btn');
-    const tracksHeader = document.getElementById('tracks-header');
-    const playlistContainer = document.getElementById('playlist-container');
-    const audioPlayer = document.getElementById('audio-player');
-    const nowPlaying = document.getElementById('now-playing');
-    const playPauseBtn = document.getElementById('play-pause-btn');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const playIcon = document.getElementById('play-icon');
-    const pauseIcon = document.getElementById('pause-icon');
-    const volumeSlider = document.getElementById('volume-slider');
-    const volumeIconContainer = document.getElementById('volume-icon-container');
-    const volumeIcon = document.getElementById('volume-icon');
-    const muteIcon = document.getElementById('mute-icon');
-    const playlistsContainer = document.getElementById('playlists-container');
-    const favoritePlaylistsContainer = document.getElementById('favorite-playlists-container');
-    const favoritePlaylistsGrid = document.getElementById('favorite-playlists-grid');
-    const allPlaylistsGrid = document.getElementById('all-playlists-grid');
-    const progressBar = document.getElementById('progress-bar');
-    const progressBarContainer = document.getElementById('progress-bar-container');
-    const currentTimeEl = document.getElementById('current-time');
-    const totalDurationEl = document.getElementById('total-duration');
-    const totalPlaylistsCount = document.getElementById('total-playlists-count');
-    const totalTracksCount = document.getElementById('total-tracks-count');
-    const playlistSearchInputPlaylists = document.getElementById('playlist-search-input-playlists');
-    const currentPlaylistTrackCount = document.getElementById('current-playlist-track-count');
-    const playlistSearchInput = document.getElementById('playlist-search-input');
-    const playlistSearchBtn = document.getElementById('playlist-search-btn');
     const pmPlaylistsContainer = document.getElementById('pm-playlists-container');
     const pmFavoritePlaylistsContainer = document.getElementById('pm-favorite-playlists-container');
     const pmFavoritePlaylistsGrid = document.getElementById('pm-favorite-playlists-grid');
@@ -152,36 +119,17 @@ window.addEventListener('DOMContentLoaded', () => {
         currentThemeName: 'dark',
         favoriteThemes: [],
         favoritePlaylists: [],
-        playlist: [],
-        originalPlaylist: [],
-        isShuffled: false,
-        repeatState: 0, // 0: off, 1: queue, 2: single
-        currentTrackIndex: -1,
         playlists: [],
-        activePlaylistPath: null,
-        activeQueuePaths: new Set(),
-        isPlayerInitialized: false,
         isPmInitialized: false,
         pmSelectedPlaylistPath: null,
         trackToMove: null,
         draggedTrackIndex: null,
         toastTimer: null,
         notificationHistory: [],
-        trackSearchQuery: '',
         playlistSearchQuery: '',
-        lastVolume: 1,
         spotifySearchDebounce: null,
         spotifySearchType: 'playlist',
     };
-
-    let playerAPI = {}; // To hold API from player module
-
-    function ensurePlayerInitialized() {
-        if (!state.isPlayerInitialized) {
-            playerAPI = initializePlayer(context);
-            state.isPlayerInitialized = true;
-        }
-    }
 
     // --- Helper Functions ---
     const showLoader = () => loadingOverlay.classList.remove('hidden');
@@ -261,30 +209,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu },
         state: state,
-        helpers: { showLoader, hideLoader, saveSettings, showView, showContextMenu, hideContextMenu, ensurePlayerInitialized },
-        get playerAPI() { return playerAPI; } // Getter to ensure it's accessed after initialization
+        helpers: { showLoader, hideLoader, saveSettings, showView, showContextMenu, hideContextMenu },
     };
 
     // --- SEARCH EVENT LISTENERS ---
-    playlistSearchInput.addEventListener('input', () => {
-        state.trackSearchQuery = playlistSearchInput.value.trim().toLowerCase();
-        if (playerAPI.renderPlaylist) playerAPI.renderPlaylist();
-    });
-    playlistSearchBtn.addEventListener('click', () => {
-        state.trackSearchQuery = playlistSearchInput.value.trim().toLowerCase();
-        if (playerAPI.renderPlaylist) playerAPI.renderPlaylist();
-    });
     pmPlaylistSearchInput.addEventListener('input', () => {
         state.playlistSearchQuery = pmPlaylistSearchInput.value.trim().toLowerCase();
-        playlistSearchInputPlaylists.value = pmPlaylistSearchInput.value;
         if (state.isPmInitialized) initializePlaylistManagement(context); // Re-render
-    });
-    playlistSearchInputPlaylists.addEventListener('input', () => {
-        state.playlistSearchQuery = playlistSearchInputPlaylists.value.trim().toLowerCase();
-        pmPlaylistSearchInput.value = playlistSearchInputPlaylists.value;
-        if (state.isPlayerInitialized) playerAPI.loadAndRenderPlaylists();
     });
 
     // --- Spotify Playlist Search ---
@@ -501,7 +434,6 @@ window.addEventListener('DOMContentLoaded', () => {
         if (newPath) {
             playlistsPathInput.value = newPath;
             saveSettings();
-            if (state.isPlayerInitialized) playerAPI.loadAndRenderPlaylists();
         }
     });
 
@@ -629,7 +561,6 @@ window.addEventListener('DOMContentLoaded', () => {
     advancedSettingsBtn.addEventListener('click', () => showView(advancedSettingsView, advancedSettingsBtn));
     playerBtn.addEventListener('click', () => {
         showView(playerView, playerBtn);
-        ensurePlayerInitialized();
     });
     playlistManagementBtn.addEventListener('click', () => { showView(playlistManagementView, playlistManagementBtn); initializePlaylistManagement(context); });
     consoleBtn.addEventListener('click', () => showView(consoleView, consoleBtn));
@@ -753,7 +684,6 @@ window.addEventListener('DOMContentLoaded', () => {
         createPlaylistBtn.classList.add('hidden');
         if (!result.startsWith('Error:')) {
             showNotification('success', 'Playlist Created', 'Playlist created from last download session.');
-            if (state.isPlayerInitialized) playerAPI.loadAndRenderPlaylists();
         }
     });
 
@@ -887,11 +817,6 @@ window.addEventListener('DOMContentLoaded', () => {
         showNotification('success', 'Update Ready', 'Click the restart button or the system notification to install.');
     });
     restartBtn.addEventListener('click', () => window.electronAPI.restartApp());
-
-    // --- Global Media Key Listeners ---
-    window.electronAPI.onMediaKeyPlayPause(() => { if (state.isPlayerInitialized && playerAPI.togglePlayPause) playerAPI.togglePlayPause(); });
-    window.electronAPI.onMediaKeyNext(() => { if (state.isPlayerInitialized && playerAPI.playNextTrack) playerAPI.playNextTrack(); });
-    window.electronAPI.onMediaKeyPrev(() => { if (state.isPlayerInitialized && playerAPI.playPreviousTrack) playerAPI.playPreviousTrack(); });
 
     window.electronAPI.onDownloadProgress(({ progress, eta }) => {
         if (downloadProgressBar) downloadProgressBar.style.width = `${progress}%`;

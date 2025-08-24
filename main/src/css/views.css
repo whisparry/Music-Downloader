@@ -696,7 +696,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view.active-view {
-    display: grid; /* Use Grid for the player */
+    display: block; /* Player is now a simple block view */
 }
 
 #playlist-management-view.active-view {
@@ -741,40 +741,7 @@ input[type=range]::-moz-range-thumb {
 
 
 /* --- Player View Redesign (Grid-based) --- */
-
-/* Main view container is a grid with two rows: content and controls */
-#player-view {
-    grid-template-rows: 1fr auto; /* Content grows, controls are fixed height */
-    overflow: hidden; /* Prevent scrollbars on the main container */
-}
-
-/* The content area is also a grid, with two columns */
-.player-content-area {
-    display: grid;
-    grid-template-columns: 300px 1fr; /* Fixed playlist panel, flexible track panel */
-    gap: 20px;
-    padding: 40px 20px 20px 20px; /* Apply consistent padding for a clean look */
-    box-sizing: border-box;
-    min-height: 0; /* Essential for grid children with overflow */
-}
-
-/* The two panels inside the content area */
-.player-playlists-panel, .player-tracks-panel {
-    display: flex; /* Use flexbox for the internal layout of the panels */
-    flex-direction: column;
-    background-color: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    min-height: 0; /* Prevent panels from growing too large */
-}
-
-/* The bottom controls bar */
-.player-controls-bar {
-    padding: 15px 20px 20px 20px;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--bg-primary);
-    z-index: 20;
-}
+/* All player-specific styles have been removed. */
 
 .panel-header {
     display: flex;
