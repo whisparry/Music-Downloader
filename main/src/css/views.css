@@ -700,7 +700,8 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view.active-view {
-    padding: 40px 20px 20px 0; /* FIX: Apply padding to the active state to ensure it overrides any base styles and removes the left-side gap. */
+    /* FIX: Remove all padding from the view container to ensure it's flush with the content area. */
+    padding: 0;
 }
 
 #playlist-management-view {
@@ -720,7 +721,8 @@ input[type=range]::-moz-range-thumb {
     gap: 20px;
     min-height: 0; /* Critical for flexbox children scrolling */
     width: 100%;
-    padding: 0; /* FIX: Remove padding from this container. */
+    /* FIX: Control padding here. Set top/right as needed, but keep left at 0. */
+    padding: 40px 20px 0 0;
     box-sizing: border-box;
 }
 
@@ -1035,7 +1037,8 @@ body.hide-search-bars .playlist-search-bar {
 .player-controls {
     flex-shrink: 0;
     width: 100%;
-    padding: 15px 0 0 0; /* FIX: Remove horizontal padding. Add top padding for spacing. */
+    /* FIX: Control padding here. Set top/right/bottom as needed, but keep left at 0. */
+    padding: 15px 20px 20px 0;
     border-top: 1px solid var(--border-color);
     text-align: center;
     background-color: var(--bg-primary);
