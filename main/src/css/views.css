@@ -690,7 +690,6 @@ input[type=range]::-moz-range-thumb {
     /* display: flex; <-- This was removed to prevent the view from always being visible due to CSS specificity. */
     flex-direction: column;
     height: 100%;
-    padding: 20px;
     box-sizing: border-box;
 }
 
@@ -701,7 +700,11 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view {
-    padding-top: 40px; /* Added more top padding for better spacing */
+    padding: 40px 0 20px; /* FIX: Removed horizontal padding. */
+}
+
+#playlist-management-view {
+    padding: 20px; /* Retain original padding for this view. */
 }
 
 #playlist-management-view h1 {
