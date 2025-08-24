@@ -1,6 +1,6 @@
 {
   "name": "soundlink",
-  "version": "9.35.16",
+  "version": "9.35.18",
   "description": "Desktop app to download from Spotify and YouTube.",
   "main": "main/main.js",
   "scripts": {

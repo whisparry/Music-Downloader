@@ -6,7 +6,10 @@
 #stats-view,
 #notification-history-view,
 #help-view {
-    padding: 40px;
+    /* This creates a centered content column with a max-width of ~1000px */
+    /* while maintaining at least 40px of padding on the sides. */
+    padding: 40px max(40px, calc(50% - 500px));
+    box-sizing: border-box;
 }
 
 /* --- Home View --- */

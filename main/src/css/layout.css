@@ -74,10 +74,12 @@
 
 /* Main Content */
 .content {
-    flex-grow: 1;
+    flex: 1 1 0; /* Use flex shorthand to allow growing and shrinking */
     position: relative;
     min-width: 0; /* Constrains the flex item. */
-    overflow: hidden; /* Creates a new block formatting context, preventing the complex player view from expanding this container and pushing the sidebar out. */
+    overflow: hidden; /* Creates a new block formatting context */
+    display: flex; /* Ensure content area is a flex container to manage its children */
+    flex-direction: column; /* Stack children vertically */
 }
 
 @keyframes viewFadeIn {
@@ -87,15 +89,15 @@
 
 .view {
     background-color: var(--bg-primary);
-    display: none; /* FIX: Hide views by default instead of using absolute positioning. */
-    height: 100%; /* FIX: Ensure view fills the content area. */
-    box-sizing: border-box; /* FIX: Include padding in height calculation. */
-    /* padding: 40px; */ /* FIX: Removed general padding. It will be handled by individual views to avoid layout conflicts. */
+    display: none; /* Hide views by default */
+    flex: 1 1 auto; /* Allow view to grow and fill the content area */
+    box-sizing: border-box; /* Include padding in height calculation. */
     overflow-y: auto;
+    flex-direction: column; /* Default direction for views */
 }
 
 .view.active-view {
-    display: block; /* FIX: Show the active view by changing its display property. */
+    display: flex; /* Show the active view by changing its display property to flex. */
     animation: viewFadeIn var(--tab-switch-speed) ease-out;
 }
 
