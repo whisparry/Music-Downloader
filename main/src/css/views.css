@@ -699,8 +699,8 @@ input[type=range]::-moz-range-thumb {
     display: flex;
 }
 
-#player-view {
-    padding: 40px 20px 20px 0; /* FIX: Consolidate padding here. 40px top, 20px right, 20px bottom, 0px left. */
+#player-view.active-view {
+    padding: 40px 20px 20px 0; /* FIX: Apply padding to the active state to ensure it overrides any base styles and removes the left-side gap. */
 }
 
 #playlist-management-view {
