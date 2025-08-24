@@ -719,7 +719,10 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     gap: 20px;
     min-height: 0; /* Critical for flexbox children scrolling */
-    padding: 0 20px; /* FIX: Add horizontal padding to inset the panels from the window edges. */
+    /* FIX: Remove centering to align content to the left. */
+    width: 100%;
+    padding: 0 20px 0 0; /* FIX: Removed left padding to align content with the sidebar. */
+    box-sizing: border-box;
 }
 
 .playlists-panel, .tracks-panel {
@@ -1032,8 +1035,9 @@ body.hide-search-bars .playlist-search-bar {
 
 .player-controls {
     flex-shrink: 0;
+    /* FIX: Remove centering to align content to the left. */
     width: 100%;
-    padding: 15px 20px 0; /* FIX: Add horizontal padding to align with the panels above. */
+    padding: 15px 20px 0 0; /* FIX: Removed left padding to align content with the sidebar. */
     border-top: 1px solid var(--border-color);
     text-align: center;
     background-color: var(--bg-primary);
