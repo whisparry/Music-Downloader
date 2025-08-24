@@ -700,7 +700,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view {
-    padding: 40px 0 20px; /* FIX: Removed horizontal padding. */
+    padding: 40px 0 20px; /* Vertical padding for the whole view. */
 }
 
 #playlist-management-view {
@@ -719,6 +719,7 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     gap: 20px;
     min-height: 0; /* Critical for flexbox children scrolling */
+    padding: 0 20px; /* FIX: Add horizontal padding to inset the panels from the window edges. */
 }
 
 .playlists-panel, .tracks-panel {
@@ -1032,7 +1033,7 @@ body.hide-search-bars .playlist-search-bar {
 .player-controls {
     flex-shrink: 0;
     width: 100%;
-    padding-top: 15px;
+    padding: 15px 20px 0; /* FIX: Add horizontal padding to align with the panels above. */
     border-top: 1px solid var(--border-color);
     text-align: center;
     background-color: var(--bg-primary);
