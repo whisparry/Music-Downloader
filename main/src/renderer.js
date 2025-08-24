@@ -127,6 +127,8 @@ window.addEventListener('DOMContentLoaded', () => {
     const hideTrackNumbersInput = document.getElementById('hideTrackNumbers');
     const normalizeVolumeInput = document.getElementById('normalizeVolume');
     const hideSearchBarsInput = document.getElementById('hideSearchBars');
+    const autoUpdateYtdlpInput = document.getElementById('autoUpdateYtdlp');
+    const autoUpdateAppInput = document.getElementById('autoUpdateApp');
     const updateYtdlpBtn = document.getElementById('update-ytdlp-btn');
     const checkForUpdatesBtn = document.getElementById('check-for-updates-btn');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
@@ -193,13 +195,15 @@ window.addEventListener('DOMContentLoaded', () => {
             hideTrackNumbers: hideTrackNumbersInput.checked,
             normalizeVolume: normalizeVolumeInput.checked,
             hideSearchBars: hideSearchBarsInput.checked,
+            autoUpdateYtdlp: autoUpdateYtdlpInput.checked,
+            autoUpdateApp: autoUpdateAppInput.checked,
         };
         await window.electronAPI.saveSettings(newSettings);
     };
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta },
         state: state,
         helpers: { showLoader, hideLoader, saveSettings },
         get playerAPI() { return playerAPI; } // Getter to ensure it's accessed after initialization
@@ -402,8 +406,15 @@ window.addEventListener('DOMContentLoaded', () => {
         toastNotification.className = `toast-notification ${type}`;
         const iconMap = { success: '✓', error: '✗', info: 'ℹ️' };
         toastIcon.innerHTML = iconMap[type] || 'ℹ️';
-        toastNotification.classList.remove('hidden');
-        state.toastTimer = setTimeout(() => toastNotification.classList.add('hidden'), 5000);
+        toastNotification.classList.remove('hidden', 'hiding');
+        
+        state.toastTimer = setTimeout(() => {
+            toastNotification.classList.add('hiding');
+            toastNotification.addEventListener('animationend', () => {
+                toastNotification.classList.add('hidden');
+                toastNotification.classList.remove('hiding');
+            }, { once: true });
+        }, 5000);
     }
     context.helpers.showNotification = showNotification; // Add to context
 
@@ -514,9 +525,11 @@ window.addEventListener('DOMContentLoaded', () => {
             setToggle(hideTrackNumbersInput, 'hide-track-numbers', currentConfig.hideTrackNumbers || false);
             setToggle(hideSearchBarsInput, 'hide-search-bars', currentConfig.hideSearchBars || false);
             normalizeVolumeInput.checked = currentConfig.normalizeVolume || false;
+            autoUpdateYtdlpInput.checked = currentConfig.autoUpdateYtdlp || false;
+            autoUpdateAppInput.checked = currentConfig.autoUpdateApp !== false;
             spotifySearchLimitInput.value = currentConfig.spotifySearchLimit || 10;
         }
-        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, spotifySearchLimitInput].forEach(input => input.addEventListener('change', saveSettings));
+        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, spotifySearchLimitInput, autoUpdateYtdlpInput, autoUpdateAppInput].forEach(input => input.addEventListener('change', saveSettings));
         hideRefreshButtonsInput.addEventListener('change', () => body.classList.toggle('hide-refresh-buttons', hideRefreshButtonsInput.checked));
         hidePlaylistCountsInput.addEventListener('change', () => body.classList.toggle('hide-playlist-counts', hidePlaylistCountsInput.checked));
         hideTrackNumbersInput.addEventListener('change', () => body.classList.toggle('hide-track-numbers', hideTrackNumbersInput.checked));
@@ -719,6 +732,7 @@ window.addEventListener('DOMContentLoaded', () => {
         setToggle(hidePlaylistCountsInput, 'hide-playlist-counts', defaultSettings.hidePlaylistCounts || false);
         setToggle(hideTrackNumbersInput, 'hide-track-numbers', defaultSettings.hideTrackNumbers || false);
         setToggle(hideSearchBarsInput, 'hide-search-bars', defaultSettings.hideSearchBars || false);
+        autoUpdateAppInput.checked = defaultSettings.autoUpdateApp !== false;
         const setSlider = (slider, valueEl, prop, value) => {
             slider.value = value;
             valueEl.textContent = `${value}s`;
@@ -836,6 +850,10 @@ window.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onDownloadProgress(({ progress, eta }) => {
         if (downloadProgressBar) downloadProgressBar.style.width = `${progress}%`;
         if (downloadEta) downloadEta.textContent = `Estimated time remaining: ${eta}`;
+    });
+
+    window.electronAPI.onShowNotification((type, title, message) => {
+        showNotification(type, title, message);
     });
 
     // --- Initial Load ---
