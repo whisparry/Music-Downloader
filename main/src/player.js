@@ -417,6 +417,8 @@ export function initializePlayer(newCtx) {
         renderPlaylist,
         togglePlayPause,
         playNextTrack: playNextTrackInQueue,
-        playPreviousTrack
+        playPreviousTrack,
+        loadQueueTracks,
+        playTrack,
     };
 }

@@ -678,9 +678,13 @@ input[type=range]::-moz-range-thumb {
 #player-view, #playlist-management-view {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    /* height: 100%; Removed as it's redundant with absolute positioning and can cause layout issues */
     padding: 20px;
     box-sizing: border-box;
+}
+
+#player-view {
+    padding-top: 40px; /* Added more top padding for better spacing */
 }
 
 #playlist-management-view h1 {

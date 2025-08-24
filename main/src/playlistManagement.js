@@ -3,7 +3,7 @@
 let ctx = {}; // To hold context (elements, state, helpers, playerAPI)
 
 async function pmRenderTracks(playlistPath) {
-    const { pmTracksContainer, pmTrackSearchInput, moveTrackNameEl, moveTrackDestinationSelect, moveTrackModal } = ctx.elements;
+    const { pmTracksContainer, pmTrackSearchInput, moveTrackNameEl, moveTrackDestinationSelect, moveTrackModal, playerView, playerBtn } = ctx.elements;
     if (!playlistPath) {
         pmTracksContainer.innerHTML = `<div class="empty-playlist-message">Select a playlist to see its tracks.</div>`;
         return;
@@ -22,7 +22,64 @@ async function pmRenderTracks(playlistPath) {
             item.className = 'pm-track-item';
             item.innerHTML = `<span class="pm-track-name" title="${track.name}">${track.name}</span><div class="pm-track-actions"><button class="pm-action-btn">Move</button><button class="pm-action-btn pm-delete-btn">Delete</button></div>`;
             pmTracksContainer.appendChild(item);
-            item.querySelector('.pm-track-name').addEventListener('dblclick', () => {
+
+            const moveButton = item.querySelector('.pm-action-btn:not(.pm-delete-btn)');
+            const deleteButton = item.querySelector('.pm-delete-btn');
+            const trackNameSpan = item.querySelector('.pm-track-name');
+
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const menuItems = [
+                    {
+                        label: 'Play',
+                        action: async () => {
+                            ctx.helpers.ensurePlayerInitialized();
+                            ctx.state.activePlaylistPath = playlistPath;
+                            ctx.state.activeQueuePaths.clear();
+                            ctx.state.activeQueuePaths.add(playlistPath);
+                            await ctx.playerAPI.loadQueueTracks();
+                            const trackIndex = ctx.state.playlist.findIndex(t => t.path === track.path);
+                            if (trackIndex !== -1) {
+                                ctx.playerAPI.playTrack(trackIndex);
+                            }
+                            ctx.helpers.showView(playerView, playerBtn);
+                        }
+                    },
+                    {
+                        label: 'Add Playlist to Queue',
+                        action: async () => {
+                            ctx.state.activeQueuePaths.add(playlistPath);
+                            ctx.state.activePlaylistPath = null;
+                            if (ctx.state.isPlayerInitialized) {
+                                await ctx.playerAPI.loadQueueTracks();
+                            }
+                            const playlist = ctx.state.playlists.find(p => p.path === playlistPath);
+                            ctx.helpers.showNotification('info', 'Queue Updated', `Added "${playlist.name}" to the queue.`);
+                        }
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'Rename',
+                        action: () => trackNameSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+                    },
+                    {
+                        label: 'Move to...',
+                        action: () => moveButton.click()
+                    },
+                    {
+                        label: 'Delete',
+                        action: () => deleteButton.click()
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'Show in Folder',
+                        action: () => window.electronAPI.showInExplorer(track.path)
+                    }
+                ];
+                ctx.helpers.showContextMenu(e.clientX, e.clientY, menuItems);
+            });
+
+            trackNameSpan.addEventListener('dblclick', () => {
                 const newName = prompt('Enter new track name (without extension):', track.name);
                 if (newName && newName.trim() !== track.name) {
                     window.electronAPI.renameTrack({ oldPath: track.path, newName: newName.trim() }).then(result => {
@@ -35,7 +92,7 @@ async function pmRenderTracks(playlistPath) {
                     });
                 }
             });
-            item.querySelector('.pm-delete-btn').addEventListener('click', async () => {
+            deleteButton.addEventListener('click', async () => {
                 if (confirm(`Are you sure you want to permanently delete "${track.name}"?`)) {
                     const result = await window.electronAPI.deleteTrack(track.path);
                     if (result.success) {
@@ -46,7 +103,7 @@ async function pmRenderTracks(playlistPath) {
                     }
                 }
             });
-            item.querySelector('.pm-action-btn:not(.pm-delete-btn)').addEventListener('click', () => {
+            moveButton.addEventListener('click', () => {
                 ctx.state.trackToMove = track;
                 moveTrackNameEl.textContent = track.name;
                 moveTrackDestinationSelect.innerHTML = '';
@@ -67,7 +124,7 @@ async function pmRenderTracks(playlistPath) {
 }
 
 async function pmRenderPlaylists() {
-    const { pmAllPlaylistsGrid, pmFavoritePlaylistsGrid, pmFavoritePlaylistsContainer, pmTracksContainer, pmTracksHeader } = ctx.elements;
+    const { pmAllPlaylistsGrid, pmFavoritePlaylistsGrid, pmFavoritePlaylistsContainer, pmTracksContainer, pmTracksHeader, playerView, playerBtn } = ctx.elements;
     try {
         ctx.state.playlists = await window.electronAPI.getPlaylists();
         pmAllPlaylistsGrid.innerHTML = '';
@@ -93,6 +150,54 @@ async function pmRenderPlaylists() {
                 pmTracksHeader.textContent = p.name;
                 pmRenderTracks(p.path);
             });
+
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const playlistNameSpan = item.querySelector('.playlist-name');
+                const menuItems = [
+                    {
+                        label: 'Play',
+                        action: async () => {
+                            ctx.helpers.ensurePlayerInitialized();
+                            ctx.state.activePlaylistPath = p.path;
+                            ctx.state.activeQueuePaths.clear();
+                            ctx.state.activeQueuePaths.add(p.path);
+                            await ctx.playerAPI.loadQueueTracks();
+                            if (ctx.state.playlist.length > 0) {
+                                ctx.playerAPI.playTrack(0);
+                            }
+                            ctx.helpers.showView(playerView, playerBtn);
+                        }
+                    },
+                    {
+                        label: 'Add to Queue',
+                        action: async () => {
+                            ctx.state.activeQueuePaths.add(p.path);
+                            ctx.state.activePlaylistPath = null; // It's a mixed queue now
+                            if (ctx.state.isPlayerInitialized) {
+                                await ctx.playerAPI.loadQueueTracks();
+                            }
+                            ctx.helpers.showNotification('info', 'Queue Updated', `Added "${p.name}" to the queue.`);
+                        }
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'Rename',
+                        action: () => playlistNameSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+                    },
+                    {
+                        label: 'Delete',
+                        action: () => item.querySelector('.playlist-delete-btn').click()
+                    },
+                    { type: 'separator' },
+                    {
+                        label: 'Show in Folder',
+                        action: () => window.electronAPI.showInExplorer(p.path)
+                    }
+                ];
+                ctx.helpers.showContextMenu(e.clientX, e.clientY, menuItems);
+            });
+
             const playlistNameSpan = item.querySelector('.playlist-name');
             playlistNameSpan.addEventListener('dblclick', () => {
                 const originalName = p.name;
