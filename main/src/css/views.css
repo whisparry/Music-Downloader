@@ -1100,7 +1100,6 @@ body.hide-search-bars .playlist-search-bar {
 
 .left-controls {
     grid-area: left;
-    justify-self: start;
     display: flex;
     align-items: center;
     gap: 5px;
@@ -1116,7 +1115,6 @@ body.hide-search-bars .playlist-search-bar {
 
 .main-controls {
     grid-area: center;
-    justify-self: center;
     display: flex;
     gap: 40px;
     justify-content: center;
@@ -1137,10 +1135,10 @@ body.hide-search-bars .playlist-search-bar {
 
 .volume-container {
     grid-area: right;
-    justify-self: end;
     display: flex;
     align-items: center;
     color: var(--text-secondary);
+    justify-content: flex-end;
 }
 
 #volume-slider {
