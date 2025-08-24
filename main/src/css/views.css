@@ -700,7 +700,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view.active-view {
-    /* FIX: Remove all padding from the view container to ensure it's flush with the content area. */
+    /* FIX: Remove all padding from the view container itself to eliminate any chance of it causing the gap. */
     padding: 0;
 }
 
@@ -718,10 +718,10 @@ input[type=range]::-moz-range-thumb {
 .player-main-content {
     flex-grow: 1;
     display: flex;
-    gap: 20px;
+    /* gap: 20px; */ /* FIX: Removed gap property which was causing the alignment issue. */
     min-height: 0; /* Critical for flexbox children scrolling */
     width: 100%;
-    /* FIX: Control padding here. Set top/right as needed, but keep left at 0. */
+    /* FIX: Control padding here. Top/Right are set, Left/Bottom are 0. */
     padding: 40px 20px 0 0;
     box-sizing: border-box;
 }
@@ -741,6 +741,7 @@ input[type=range]::-moz-range-thumb {
 
 .tracks-panel {
     flex-grow: 1; /* Takes up remaining space */
+    margin-left: 20px; /* FIX: Use margin to create space between panels instead of gap. */
 }
 
 .panel-header {
@@ -1037,8 +1038,9 @@ body.hide-search-bars .playlist-search-bar {
 .player-controls {
     flex-shrink: 0;
     width: 100%;
-    /* FIX: Control padding here. Set top/right/bottom as needed, but keep left at 0. */
+    /* FIX: Control padding here. Top/Right/Bottom are set, Left is 0. */
     padding: 15px 20px 20px 0;
+    margin-top: 0; /* FIX: Reset margin-top as padding is now used for spacing. */
     border-top: 1px solid var(--border-color);
     text-align: center;
     background-color: var(--bg-primary);
