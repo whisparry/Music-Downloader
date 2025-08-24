@@ -1089,11 +1089,10 @@ body.hide-search-bars .playlist-search-bar {
 }
 
 .player-buttons-wrapper {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     width: 100%;
-    position: relative;
 }
 
 .left-controls {
@@ -1114,9 +1113,7 @@ body.hide-search-bars .playlist-search-bar {
 .main-controls {
     display: flex;
     gap: 25px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    justify-content: center;
 }
 
 .main-controls button {
@@ -1136,6 +1133,7 @@ body.hide-search-bars .playlist-search-bar {
     display: flex;
     align-items: center;
     color: var(--text-secondary);
+    justify-content: flex-end;
 }
 
 #volume-slider {
