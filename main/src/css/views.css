@@ -696,10 +696,10 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view.active-view {
-    display: flex; /* Use Flex for player view */
-    flex-direction: column;
-    justify-content: flex-end; /* Push controls to the bottom */
+    display: grid; /* Use Grid for player view */
+    grid-template-rows: 1fr auto; /* Top row takes all space, bottom row fits content */
     padding: 20px;
+    box-sizing: border-box;
 }
 
 #playlist-management-view.active-view {
@@ -1038,7 +1038,7 @@ body.hide-search-bars .playlist-search-bar {
 }
 
 .player-controls-bar {
-    flex-shrink: 0;
+    grid-row-start: 2; /* Position in the bottom row of the grid */
     width: 100%;
     text-align: center;
     box-sizing: border-box;
@@ -1117,7 +1117,7 @@ body.hide-search-bars .playlist-search-bar {
     transform: translateX(-50%);
 }
 
-.player-buttons button {
+.main-controls button {
     margin: 0;
     padding: 10px;
     line-height: 0;
