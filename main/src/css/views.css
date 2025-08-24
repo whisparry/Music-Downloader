@@ -1,3 +1,14 @@
+/* --- General View Padding for Simple Views --- */
+#home-view,
+#settings-view,
+#advanced-settings-view,
+#console-view,
+#stats-view,
+#notification-history-view,
+#help-view {
+    padding: 40px;
+}
+
 /* --- Home View --- */
 .input-fields-container {
     display: flex;
@@ -676,11 +687,17 @@ input[type=range]::-moz-range-thumb {
 
 /* --- Player & Playlist Management Views --- */
 #player-view, #playlist-management-view {
-    display: flex;
+    /* display: flex; <-- This was removed to prevent the view from always being visible due to CSS specificity. */
     flex-direction: column;
-    /* height: 100%; Removed as it's redundant with absolute positioning and can cause layout issues */
+    height: 100%;
     padding: 20px;
     box-sizing: border-box;
+}
+
+/* FIX: Apply flex display only when the view is active to respect the display:none default. */
+#player-view.active-view,
+#playlist-management-view.active-view {
+    display: flex;
 }
 
 #player-view {

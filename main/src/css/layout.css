@@ -76,6 +76,8 @@
 .content {
     flex-grow: 1;
     position: relative;
+    min-width: 0; /* Constrains the flex item. */
+    overflow: hidden; /* Creates a new block formatting context, preventing the complex player view from expanding this container and pushing the sidebar out. */
 }
 
 @keyframes viewFadeIn {
@@ -85,22 +87,15 @@
 
 .view {
     background-color: var(--bg-primary);
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding: 40px;
+    display: none; /* FIX: Hide views by default instead of using absolute positioning. */
+    height: 100%; /* FIX: Ensure view fills the content area. */
+    box-sizing: border-box; /* FIX: Include padding in height calculation. */
+    /* padding: 40px; */ /* FIX: Removed general padding. It will be handled by individual views to avoid layout conflicts. */
     overflow-y: auto;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity var(--tab-switch-speed) ease-in-out;
 }
 
 .view.active-view {
-    opacity: 1;
-    pointer-events: auto;
-    z-index: 10;
+    display: block; /* FIX: Show the active view by changing its display property. */
     animation: viewFadeIn var(--tab-switch-speed) ease-out;
 }
 

@@ -22,8 +22,8 @@
 
 /* Toast Notification Styles */
 .toast-notification {
-    position: absolute;
-    top: 20px;
+    position: fixed; /* FIX: Change to fixed positioning to be relative to the viewport. */
+    top: 40px; /* FIX: Adjust top position to account for the 30px title bar. */
     right: 20px;
     z-index: 1002;
     background-color: var(--bg-secondary);

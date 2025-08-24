@@ -190,6 +190,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const allViews = [homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, statsView, notificationHistoryView, consoleView, helpView];
     const allNavBtns = [homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, statsBtn, notificationHistoryBtn, consoleBtn, helpBtn];
     async function showView(viewToShow, btnToActivate) {
+        // FIX: Restore full showView functionality to handle nav button states and saving settings.
         if (settingsView.classList.contains('active-view') || advancedSettingsView.classList.contains('active-view')) {
             await saveSettings();
             showNotification('success', 'Settings Saved', 'Your changes have been applied.');
