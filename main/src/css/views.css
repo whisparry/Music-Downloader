@@ -700,7 +700,7 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view {
-    padding: 40px 0 20px; /* Vertical padding for the whole view. */
+    padding: 40px 20px 20px 0; /* FIX: Consolidate padding here. 40px top, 20px right, 20px bottom, 0px left. */
 }
 
 #playlist-management-view {
@@ -719,9 +719,8 @@ input[type=range]::-moz-range-thumb {
     display: flex;
     gap: 20px;
     min-height: 0; /* Critical for flexbox children scrolling */
-    /* FIX: Remove centering to align content to the left. */
     width: 100%;
-    padding: 0 20px 0 0; /* FIX: Removed left padding to align content with the sidebar. */
+    padding: 0; /* FIX: Remove padding from this container. */
     box-sizing: border-box;
 }
 
@@ -1035,9 +1034,8 @@ body.hide-search-bars .playlist-search-bar {
 
 .player-controls {
     flex-shrink: 0;
-    /* FIX: Remove centering to align content to the left. */
     width: 100%;
-    padding: 15px 20px 0 0; /* FIX: Removed left padding to align content with the sidebar. */
+    padding: 15px 0 0 0; /* FIX: Remove horizontal padding. Add top padding for spacing. */
     border-top: 1px solid var(--border-color);
     text-align: center;
     background-color: var(--bg-primary);
