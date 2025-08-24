@@ -696,7 +696,10 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view.active-view {
-    display: block; /* Player is now a simple block view */
+    display: flex; /* Use Flex for player view */
+    flex-direction: column;
+    justify-content: flex-end; /* Push controls to the bottom */
+    padding: 20px;
 }
 
 #playlist-management-view.active-view {

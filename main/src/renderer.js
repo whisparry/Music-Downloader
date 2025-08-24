@@ -1,5 +1,6 @@
 import { themeNames, themeColors } from './themes.js';
 import { initializePlaylistManagement } from './playlistManagement.js';
+import { initializePlayer } from './player.js';
 
 window.addEventListener('DOMContentLoaded', () => {
     // --- Element References ---
@@ -113,6 +114,21 @@ window.addEventListener('DOMContentLoaded', () => {
     const statsDetailContent = document.getElementById('stats-detail-content');
     const statsDetailCloseBtn = statsDetailModal.querySelector('.modal-close-btn');
     const contextMenu = document.getElementById('context-menu');
+    const nowPlaying = document.getElementById('now-playing');
+    const currentTime = document.getElementById('current-time');
+    const totalDuration = document.getElementById('total-duration');
+    const progressBarContainer = document.getElementById('progress-bar-container');
+    const progressBar = document.getElementById('progress-bar');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    const repeatBtn = document.getElementById('repeat-btn');
+    const repeatStatusText = document.getElementById('repeat-status-text');
+    const prevBtn = document.getElementById('prev-btn');
+    const playPauseBtn = document.getElementById('play-pause-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const volumeIconContainer = document.getElementById('volume-icon-container');
+    const volumeIconUp = document.getElementById('volume-icon-up');
+    const volumeIconMute = document.getElementById('volume-icon-mute');
+    const volumeSlider = document.getElementById('volume-slider');
 
     // --- STATE & CONTEXT (Centralized) ---
     const state = {
@@ -121,6 +137,7 @@ window.addEventListener('DOMContentLoaded', () => {
         favoritePlaylists: [],
         playlists: [],
         isPmInitialized: false,
+        isPlayerInitialized: false,
         pmSelectedPlaylistPath: null,
         trackToMove: null,
         draggedTrackIndex: null,
@@ -209,7 +226,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu, nowPlaying, currentTime, totalDuration, progressBarContainer, progressBar, shuffleBtn, repeatBtn, repeatStatusText, prevBtn, playPauseBtn, nextBtn, volumeIconContainer, volumeIconUp, volumeIconMute, volumeSlider },
         state: state,
         helpers: { showLoader, hideLoader, saveSettings, showView, showContextMenu, hideContextMenu },
     };
@@ -561,6 +578,10 @@ window.addEventListener('DOMContentLoaded', () => {
     advancedSettingsBtn.addEventListener('click', () => showView(advancedSettingsView, advancedSettingsBtn));
     playerBtn.addEventListener('click', () => {
         showView(playerView, playerBtn);
+        if (!state.isPlayerInitialized) {
+            initializePlayer(context);
+            state.isPlayerInitialized = true;
+        }
     });
     playlistManagementBtn.addEventListener('click', () => { showView(playlistManagementView, playlistManagementBtn); initializePlaylistManagement(context); });
     consoleBtn.addEventListener('click', () => showView(consoleView, consoleBtn));
