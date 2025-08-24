@@ -698,10 +698,14 @@ input[type=range]::-moz-range-thumb {
     padding: 0; /* Remove padding from the root view element */
 }
 
+#player-view {
+    justify-content: center;
+    align-items: center;
+}
+
 #player-view.active-view {
-    display: grid; /* Use Grid for player view */
-    grid-template-rows: 1fr auto; /* Top row takes all space, bottom row fits content */
-    padding: 0; /* Remove padding to allow controls to span full width */
+    display: flex;
+    padding: 40px;
     box-sizing: border-box;
 }
 
@@ -1041,10 +1045,8 @@ body.hide-search-bars .playlist-search-bar {
 }
 
 .player-controls-bar {
-    grid-row-start: 2; /* Position in the bottom row of the grid */
+    /* This is now a direct grid item in the body, not positioned inside a view */
     width: 100%;
-    max-width: 1400px; /* Set a max-width for the entire control bar */
-    margin: 0 auto; /* Center the control bar within the available space */
     box-sizing: border-box;
     z-index: 20;
     display: grid;
@@ -1056,7 +1058,9 @@ body.hide-search-bars .playlist-search-bar {
         "left        center      right";
     align-items: center;
     row-gap: 10px;
-    padding: 15px 25px; /* Add padding for breathing room */
+    padding: 15px 25px;
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
 }
 
 .player-buttons-wrapper {

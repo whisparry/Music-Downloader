@@ -39,6 +39,11 @@ body, html {
     user-select: none; /* Standard syntax */
 }
 
+body {
+    display: grid;
+    grid-template-rows: 1fr auto;
+}
+
 h1 {
     color: var(--text-primary);
     border-bottom: none;

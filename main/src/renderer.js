@@ -578,10 +578,6 @@ window.addEventListener('DOMContentLoaded', () => {
     advancedSettingsBtn.addEventListener('click', () => showView(advancedSettingsView, advancedSettingsBtn));
     playerBtn.addEventListener('click', () => {
         showView(playerView, playerBtn);
-        if (!state.isPlayerInitialized) {
-            initializePlayer(context);
-            state.isPlayerInitialized = true;
-        }
     });
     playlistManagementBtn.addEventListener('click', () => { showView(playlistManagementView, playlistManagementBtn); initializePlaylistManagement(context); });
     consoleBtn.addEventListener('click', () => showView(consoleView, consoleBtn));
@@ -852,4 +848,5 @@ window.addEventListener('DOMContentLoaded', () => {
     initializeClearButtons();
     loadNotificationHistory();
     loadInitialSettings();
+    initializePlayer(context);
 });
