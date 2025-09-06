@@ -1104,6 +1104,11 @@ app.whenReady().then(() => {
         const numberPrefix = (index + 1).toString().padStart(3, '0');
         const outputTemplate = path.join(downloadsDir, `${numberPrefix} - ${sanitizedTrackName}.%(ext)s`);
         const audioFormat = config.fileExtension || 'm4a';
+
+        // FIX: Instead of parsing stdout, we construct the final path ourselves.
+        // This is more reliable as yt-dlp will convert the file to the specified audio format.
+        const finalPath = path.join(downloadsDir, `${numberPrefix} - ${sanitizedTrackName}.${audioFormat}`);
+
         const args = [
             '--extract-audio', 
             '--audio-format', audioFormat, 
@@ -1125,31 +1130,28 @@ app.whenReady().then(() => {
             if (!ytdlpPath) return reject(new Error('No yt-dlp executable found.'));
             const proc = spawn(ytdlpPath, args);
             activeProcesses.add(proc);
-            let finalPath = '';
+
+            // We only need stdout for progress reporting now.
             proc.stdout.on('data', (data) => {
                 const output = data.toString();
-                const progressMatch = output.match(/\[download\]\s+([\d.]+)%/);
+                let progressMatch = output.match(/\[download\]\s+([\d.]+)%/);
                 if (progressMatch && onProgress) {
                     onProgress(parseFloat(progressMatch[1]));
                 } else {
-                    const progressMatchSimple = output.match(/(\d+)%/);
-                    if (progressMatchSimple && onProgress) {
-                        onProgress(parseFloat(progressMatchSimple[1]));
+                    // Fallback for different progress formats
+                    progressMatch = output.match(/(\d+)%/);
+                    if (progressMatch && onProgress) {
+                        onProgress(parseFloat(progressMatch[1]));
                     }
                 }
-                // FIX: Capture both potential destination lines from yt-dlp output.
-                // This handles cases where audio is downloaded directly without extraction.
-                // The last destination line seen will be the final one.
-                const downloadDestMatch = output.match(/\[download\] Destination: (.*)/);
-                if (downloadDestMatch) finalPath = downloadDestMatch[1].trim();
-
-                const extractDestMatch = output.match(/\[ExtractAudio\] Destination: (.*)/);
-                if (extractDestMatch) finalPath = extractDestMatch[1].trim();
             });
+
             proc.on('close', async (code) => {
                 activeProcesses.delete(proc);
                 if (isDownloadCancelled) return reject(new Error('Download cancelled'));
-                if (code === 0 && finalPath) {
+
+                if (code === 0) {
+                    // On success, we assume the file was created at the path we constructed.
                     mainWindow.webContents.send('update-status', `✅ [${index + 1}/${total}] Finished: "${sanitizedTrackName}"`);
                     resolve(finalPath);
                 } else {

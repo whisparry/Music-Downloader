@@ -197,6 +197,15 @@ button:hover {
     max-width: 300px;
 }
 
+#big-cancel-btn.go-back {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+#big-cancel-btn.go-back:hover {
+    background-color: var(--border-color);
+}
+
 .secondary-btn {
     background-color: var(--bg-tertiary);
     color: var(--text-secondary);

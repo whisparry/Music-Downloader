@@ -175,6 +175,23 @@ window.addEventListener('DOMContentLoaded', () => {
     let playerAPI = {}; // To hold API from player module
 
     // --- Helper Functions ---
+    const cancelDownloadHandler = () => window.electronAPI.cancelDownload();
+
+    function goBackToHomeInput() {
+        homeView.classList.remove('console-active');
+        homeInputSection.classList.remove('hidden');
+        homeConsoleSection.classList.add('hidden');
+        linksInput.disabled = false;
+        
+        // Reset the action buttons
+        bigCancelBtn.textContent = 'Cancel Download';
+        bigCancelBtn.classList.remove('go-back');
+        bigCancelBtn.classList.add('hidden');
+        createPlaylistBtn.classList.add('hidden');
+        bigCancelBtn.removeEventListener('click', goBackToHomeInput);
+        bigCancelBtn.addEventListener('click', cancelDownloadHandler);
+    }
+
     const showLoader = () => loadingOverlay.classList.remove('hidden');
     const hideLoader = () => loadingOverlay.classList.add('hidden');
     const saveSettings = async () => {
@@ -638,12 +655,12 @@ window.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onUpdateStatus((message, isFinished, payload) => {
         appendConsoleMessage(message);
         if (isFinished) {
-            homeView.classList.remove('console-active');
-            homeInputSection.classList.remove('hidden');
-            homeConsoleSection.classList.add('hidden');
+            // Repurpose the cancel button to a "Go Back" button
+            bigCancelBtn.textContent = 'Go Back';
+            bigCancelBtn.classList.add('go-back');
+            bigCancelBtn.removeEventListener('click', cancelDownloadHandler);
+            bigCancelBtn.addEventListener('click', goBackToHomeInput);
 
-            linksInput.disabled = false;
-            bigCancelBtn.classList.add('hidden');
             downloadProgressContainer.classList.add('hidden');
             if (payload && payload.success && payload.filesDownloaded > 0) {
                 if (autoCreatePlaylistInput.checked) {
@@ -700,7 +717,7 @@ window.addEventListener('DOMContentLoaded', () => {
         downloadEta.textContent = 'Estimated time remaining: calculating...';
         window.electronAPI.startDownload(validLinks);
     });
-    bigCancelBtn.addEventListener('click', () => window.electronAPI.cancelDownload());
+    
     createPlaylistBtn.addEventListener('click', async () => {
         const result = await window.electronAPI.createPlaylist();
         appendConsoleMessage(result);
@@ -857,6 +874,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Initial Load ---
+    bigCancelBtn.addEventListener('click', cancelDownloadHandler);
     initializeClearButtons();
     loadNotificationHistory();
     loadInitialSettings();
