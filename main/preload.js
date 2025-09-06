@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     renamePlaylist: (data) => ipcRenderer.invoke('rename-playlist', data),
     renameTrack: (data) => ipcRenderer.invoke('rename-track', data),
     searchSpotifyPlaylists: (query) => ipcRenderer.invoke('search-spotify-playlists', query),
+    getSpotifyItemDetails: (data) => ipcRenderer.invoke('get-spotify-item-details', data),
     openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
     getYtdlpCount: () => ipcRenderer.invoke('get-ytdlp-count'),
     updateYtdlp: () => ipcRenderer.invoke('update-ytdlp'),
@@ -38,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onMediaKeyPlayPause: (callback) => ipcRenderer.on('media-key-play-pause', callback),
     onMediaKeyNext: (callback) => ipcRenderer.on('media-key-next', callback),
     onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback),
-    incrementNotificationStat: () => ipcRenderer.send('increment-notification-stat')
-    }
+    incrementNotificationStat: () => ipcRenderer.send('increment-notification-stat'),
+    onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, ...args) => callback(...args))
+  }
   );

@@ -139,6 +139,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const downloadProgressContainer = document.getElementById('download-progress-container');
     const downloadProgressBar = document.getElementById('download-progress-bar');
     const downloadEta = document.getElementById('download-eta');
+    const spotifyPreviewModal = document.getElementById('spotify-preview-modal');
+    const previewModalCloseBtn = document.getElementById('preview-modal-close-btn');
+    const previewModalTitle = document.getElementById('preview-modal-title');
+    const previewModalContent = document.getElementById('preview-modal-content');
+    const previewAddAllBtn = document.getElementById('preview-add-all-btn');
 
     // --- STATE & CONTEXT (Centralized) ---
     const state = {
@@ -165,6 +170,7 @@ window.addEventListener('DOMContentLoaded', () => {
         lastVolume: 1,
         spotifySearchDebounce: null,
         spotifySearchType: 'playlist',
+        spotifyPreviewTracks: [],
     };
 
     let playerAPI = {}; // To hold API from player module
@@ -195,7 +201,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, spotifyPreviewModal, previewModalCloseBtn, previewModalTitle, previewModalContent, previewAddAllBtn },
         state: state,
         helpers: { showLoader, hideLoader, saveSettings },
         get playerAPI() { return playerAPI; } // Getter to ensure it's accessed after initialization
@@ -276,6 +282,9 @@ window.addEventListener('DOMContentLoaded', () => {
             results.forEach(item => {
                 const resultEl = document.createElement('div');
                 resultEl.className = 'spotify-result-item';
+                const spotifyId = item.url.split('/').pop();
+                resultEl.dataset.id = spotifyId;
+                resultEl.dataset.type = item.type.toLowerCase();
 
                 let ownerText = '';
                 if (item.type === 'Playlist') ownerText = `by ${item.owner}`;
@@ -299,6 +308,38 @@ window.addEventListener('DOMContentLoaded', () => {
                     spotifyResultsDropdown.classList.add('hidden');
                     linksInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger clear button check
                 });
+
+                resultEl.addEventListener('contextmenu', async (e) => {
+                    e.preventDefault();
+                    previewModalTitle.textContent = 'Loading...';
+                    previewModalContent.innerHTML = '<div class="spinner"></div>';
+                    spotifyPreviewModal.classList.remove('hidden');
+
+                    const details = await window.electronAPI.getSpotifyItemDetails({ type: resultEl.dataset.type, id: resultEl.dataset.id });
+
+                    if (details && !details.error) {
+                        previewModalTitle.textContent = `${item.type}: ${details.name}`;
+                        previewModalContent.innerHTML = '';
+                        state.spotifyPreviewTracks = details.tracks;
+                        details.tracks.forEach((track, index) => {
+                            const trackEl = document.createElement('div');
+                            trackEl.className = 'preview-track-item';
+                            trackEl.innerHTML = `
+                                <span class="preview-track-number">${index + 1}.</span>
+                                <div class="preview-track-details">
+                                    <span class="preview-track-name" title="${track.name}">${track.name}</span>
+                                    <span class="preview-track-artist" title="${track.artist}">${track.artist}</span>
+                                </div>
+                            `;
+                            previewModalContent.appendChild(trackEl);
+                        });
+                    } else {
+                        previewModalTitle.textContent = 'Error';
+                        previewModalContent.innerHTML = `<p>${details.error || 'Could not load details.'}</p>`;
+                        state.spotifyPreviewTracks = [];
+                    }
+                });
+
                 spotifyResultsDropdown.appendChild(resultEl);
             });
             spotifyResultsDropdown.classList.remove('hidden');
@@ -312,6 +353,17 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!spotifyFilterBtn.contains(e.target) && !spotifyFilterDropdown.contains(e.target)) {
             spotifyFilterDropdown.classList.add('hidden');
         }
+    });
+
+    previewModalCloseBtn.addEventListener('click', () => spotifyPreviewModal.classList.add('hidden'));
+    previewAddAllBtn.addEventListener('click', () => {
+        if (state.spotifyPreviewTracks.length > 0) {
+            const links = state.spotifyPreviewTracks.map(t => t.url).join('\n');
+            linksInput.value += (linksInput.value ? '\n' : '') + links;
+            linksInput.dispatchEvent(new Event('input', { bubbles: true }));
+            showNotification('success', 'Added to Queue', `${state.spotifyPreviewTracks.length} tracks added to the download input.`);
+        }
+        spotifyPreviewModal.classList.add('hidden');
     });
 
     // --- Clear Input Button Logic ---

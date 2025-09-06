@@ -623,6 +623,29 @@ app.whenReady().then(() => {
         }
     });
 
+    ipcMain.handle('get-spotify-item-details', async (event, { type, id }) => {
+        try {
+            await refreshSpotifyToken();
+            if (type === 'playlist') {
+                const data = await spotifyApi.getPlaylist(id);
+                const tracks = data.body.tracks.items.map(item => item.track ? { name: item.track.name, artist: item.track.artists.map(a => a.name).join(', '), url: item.track.external_urls.spotify } : null).filter(Boolean);
+                return { name: data.body.name, tracks };
+            } else if (type === 'album') {
+                const data = await spotifyApi.getAlbum(id);
+                const tracks = data.body.tracks.items.map(track => ({ name: track.name, artist: track.artists.map(a => a.name).join(', '), url: track.external_urls.spotify }));
+                return { name: data.body.name, tracks };
+            } else if (type === 'track') {
+                const data = await spotifyApi.getTrack(id);
+                const track = { name: data.body.name, artist: data.body.artists.map(a => a.name).join(', '), url: data.body.external_urls.spotify };
+                return { name: data.body.name, tracks: [track] };
+            }
+            return null;
+        } catch (error) {
+            console.error('Failed to get Spotify item details:', error);
+            return { error: error.message };
+        }
+    });
+
     // --- DOWNLOAD & SPOTIFY LOGIC ---
 
     ipcMain.handle('search-spotify-playlists', async (event, { query, type, limit }) => {

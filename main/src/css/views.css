@@ -963,6 +963,53 @@ body.hide-search-bars .playlist-search-bar {
     color: var(--accent-text-color);
 }
 
+#preview-modal-content {
+    max-height: 40vh;
+    margin-bottom: 20px;
+}
+
+.preview-track-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 4px;
+    gap: 10px;
+}
+
+.preview-track-item:nth-child(odd) {
+    background-color: var(--bg-tertiary);
+}
+
+.preview-track-number {
+    color: var(--text-secondary);
+    font-size: 12px;
+    width: 25px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.preview-track-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.preview-track-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.preview-track-artist {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
 .player-controls {
     flex-shrink: 0;
     width: 100%;
