@@ -34,6 +34,7 @@ let ytdlpInstanceIndex = 0;
 let lastDownloadedFiles = [];
 let lastPlaylistName = null;
 let isDownloadCancelled = false;
+let ytdlpUpdateInterval = null;
 
 // --- HELPER FUNCTIONS (Pre-Startup) ---
 function formatEta(ms) {
@@ -90,6 +91,8 @@ function loadConfig() {
                 favoritePlaylists: [],
                 normalizeVolume: false,
                 hideSearchBars: false,
+                autoUpdateYtdlp: false,
+                autoUpdateApp: true,
                 playlistsFolderPath: ''
             };
             fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
@@ -238,7 +241,7 @@ function createWindow() {
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
-        if (!isDev) {
+        if (!isDev && config.autoUpdateApp) {
             autoUpdater.checkForUpdates();
         }
     });
@@ -250,6 +253,63 @@ function createWindow() {
         }
         return false;
     });
+}
+
+// --- AUTO-UPDATER LOGIC ---
+async function performYtdlpUpdate(isAutoUpdate = false) {
+    return new Promise((resolve) => {
+        const ytdlpPath = getNextYtdlpPath();
+        if (!ytdlpPath) {
+            const msg = 'Error: yt-dlp executable not found.';
+            if (!isAutoUpdate) resolve(msg);
+            else resolve();
+            return;
+        }
+        const proc = spawn(ytdlpPath, ['-U']);
+        let output = '';
+        proc.stdout.on('data', (data) => output += data.toString());
+        proc.stderr.on('data', (data) => output += data.toString());
+        proc.on('close', (code) => {
+            if (code === 0) {
+                if (output.includes('Updated yt-dlp to')) {
+                    const msg = 'yt-dlp updated successfully!';
+                    if (mainWindow) mainWindow.webContents.send('show-notification', 'success', 'yt-dlp Updated', msg);
+                    if (!isAutoUpdate) resolve('Updated successfully!');
+                } else {
+                    if (!isAutoUpdate) resolve('yt-dlp is already up to date.');
+                }
+            } else {
+                const msg = `yt-dlp update failed with exit code ${code}.`;
+                if (mainWindow) mainWindow.webContents.send('show-notification', 'error', 'yt-dlp Update Failed', msg);
+                if (!isAutoUpdate) resolve(`${msg}\n${output}`);
+            }
+            if (isAutoUpdate) resolve();
+        });
+        proc.on('error', (err) => {
+            const msg = `Failed to run updater: ${err.message}`;
+            if (mainWindow) mainWindow.webContents.send('show-notification', 'error', 'yt-dlp Update Error', msg);
+            if (!isAutoUpdate) resolve(msg);
+            else resolve();
+        });
+    });
+}
+
+function setupAutoUpdaters() {
+    if (ytdlpUpdateInterval) {
+        clearInterval(ytdlpUpdateInterval);
+        ytdlpUpdateInterval = null;
+    }
+
+    if (config.autoUpdateYtdlp) {
+        log.info('[yt-dlp Updater] Auto-update enabled. Performing initial check.');
+        performYtdlpUpdate(true);
+        ytdlpUpdateInterval = setInterval(() => {
+            log.info('[yt-dlp Updater] Performing periodic check for updates.');
+            performYtdlpUpdate(true);
+        }, 15 * 60 * 1000); // 15 minutes
+    } else {
+        log.info('[yt-dlp Updater] Auto-update disabled.');
+    }
 }
 
 // --- APP LIFECYCLE & IPC HANDLERS ---
@@ -267,13 +327,7 @@ app.whenReady().then(() => {
         mainWindow.webContents.send('media-key-prev');
     });
 
-    // Start periodic update checks
-    if (!isDev) {
-        setInterval(() => {
-            log.info('[AutoUpdater] Performing periodic check for updates.');
-            autoUpdater.checkForUpdates();
-        }, 3 * 60 * 1000); // 3 minutes
-    }
+    setupAutoUpdaters();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -410,17 +464,22 @@ app.whenReady().then(() => {
             favoritePlaylists: [],
             normalizeVolume: false,
             hideSearchBars: false,
+            autoUpdateApp: true,
         };
     });
 
     ipcMain.handle('save-settings', (event, newSettings) => {
         try {
+            const wasAutoUpdateEnabled = config.autoUpdateYtdlp;
             config = { ...config, ...newSettings };
             safeWriteFileSync(configPath, JSON.stringify(config, null, 4));
             downloadsDir = config.downloadsPath;
             if (config.spotify) {
                 spotifyApi.setClientId(config.spotify.clientId);
                 spotifyApi.setClientSecret(config.spotify.clientSecret);
+            }
+            if (wasAutoUpdateEnabled !== config.autoUpdateYtdlp) {
+                setupAutoUpdaters();
             }
             return { success: true };
         } catch (error) {
@@ -436,32 +495,7 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle('update-ytdlp', async () => {
-        return new Promise((resolve) => {
-            const ytdlpPath = getNextYtdlpPath();
-            if (!ytdlpPath) {
-                return resolve('Error: yt-dlp executable not found.');
-            }
-            const proc = spawn(ytdlpPath, ['-U']);
-            let output = '';
-            proc.stdout.on('data', (data) => output += data.toString());
-            proc.stderr.on('data', (data) => output += data.toString());
-            proc.on('close', (code) => {
-                if (code === 0) {
-                    if (output.includes('is up to date')) {
-                        resolve('Up to date!');
-                    } else if (output.includes('Updated yt-dlp to')) {
-                        resolve('Updated successfully!');
-                    } else {
-                        resolve('Update check completed.'); // Fallback for unexpected output
-                    }
-                } else {
-                    resolve(`Update failed with exit code ${code}:\n${output}`);
-                }
-            });
-            proc.on('error', (err) => {
-                resolve(`Failed to run updater: ${err.message}`);
-            });
-        });
+        return await performYtdlpUpdate(false);
     });
 
     ipcMain.handle('open-folder-dialog', async () => {
