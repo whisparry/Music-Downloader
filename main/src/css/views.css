@@ -169,6 +169,11 @@
 }
 
 /* --- Console View --- */
+#console-view {
+    display: flex;
+    flex-direction: column;
+}
+
 #download-progress-container {
     margin-bottom: 15px;
 }

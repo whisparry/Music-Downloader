@@ -220,7 +220,8 @@ button:hover {
     background-color: var(--bg-secondary);
     border-left: 4px solid var(--border-color);
     border-radius: 4px;
-    height: 350px;
+    flex-grow: 1;
+    min-height: 0; /* For proper scrolling within a flex container */
     overflow-y: auto;
     white-space: pre-wrap;
     font-family: "Courier New", Courier, monospace;
