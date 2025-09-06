@@ -1137,8 +1137,14 @@ app.whenReady().then(() => {
                         onProgress(parseFloat(progressMatchSimple[1]));
                     }
                 }
-                const destinationMatch = output.match(/\[ExtractAudio\] Destination: (.*)/);
-                if (destinationMatch) finalPath = destinationMatch[1].trim();
+                // FIX: Capture both potential destination lines from yt-dlp output.
+                // This handles cases where audio is downloaded directly without extraction.
+                // The last destination line seen will be the final one.
+                const downloadDestMatch = output.match(/\[download\] Destination: (.*)/);
+                if (downloadDestMatch) finalPath = downloadDestMatch[1].trim();
+
+                const extractDestMatch = output.match(/\[ExtractAudio\] Destination: (.*)/);
+                if (extractDestMatch) finalPath = extractDestMatch[1].trim();
             });
             proc.on('close', async (code) => {
                 activeProcesses.delete(proc);

@@ -1,3 +1,14 @@
+/* --- Simple Scrollable Views --- */
+/* Add scrolling behavior only to views that don't manage it internally with flexbox. */
+#home-view,
+#settings-view,
+#advanced-settings-view,
+#stats-view,
+#notification-history-view,
+#help-view {
+    overflow-y: auto;
+}
+
 /* --- Home View --- */
 .input-fields-container {
     display: flex;
@@ -172,6 +183,24 @@
 #console-view {
     display: flex;
     flex-direction: column;
+    height: 100%; /* Ensure the view takes the full height of its container */
+    box-sizing: border-box; /* Include padding in the height calculation */
+    overflow-y: hidden; /* Let the child .console-output handle scrolling */
+}
+
+/* --- Console Functionality (within Home View) --- */
+#home-view.console-active {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: hidden; /* Let the child .console-output handle scrolling */
+}
+
+#home-console-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 #download-progress-container {
@@ -686,6 +715,7 @@ input[type=range]::-moz-range-thumb {
     height: 100%;
     padding: 20px;
     box-sizing: border-box;
+    overflow-y: hidden; /* Let child panels handle scrolling */
 }
 
 #playlist-management-view h1 {
