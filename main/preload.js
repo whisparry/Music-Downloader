@@ -38,6 +38,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onMediaKeyPlayPause: (callback) => ipcRenderer.on('media-key-play-pause', callback),
     onMediaKeyNext: (callback) => ipcRenderer.on('media-key-next', callback),
     onMediaKeyPrev: (callback) => ipcRenderer.on('media-key-prev', callback),
-    incrementNotificationStat: () => ipcRenderer.send('increment-notification-stat')
+    onDownloadProgress: (callback) => ipcRenderer.on('download-progress', (event, ...args) => callback(...args)),
+    getDetailedStats: (statType) => ipcRenderer.invoke('get-detailed-stats', statType),
+    incrementNotificationStat: () => ipcRenderer.send('increment-notification-stat'),
+    onShowNotification: (callback) => ipcRenderer.on('show-notification', (event, ...args) => callback(...args))
     }
   );
