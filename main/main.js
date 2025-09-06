@@ -34,7 +34,6 @@ let ytdlpInstanceIndex = 0;
 let lastDownloadedFiles = [];
 let lastPlaylistName = null;
 let isDownloadCancelled = false;
-let ytdlpUpdateInterval = null;
 
 // --- HELPER FUNCTIONS (Pre-Startup) ---
 function formatEta(ms) {
@@ -91,8 +90,6 @@ function loadConfig() {
                 favoritePlaylists: [],
                 normalizeVolume: false,
                 hideSearchBars: false,
-                autoUpdateYtdlp: false,
-                autoUpdateApp: true,
                 playlistsFolderPath: ''
             };
             fs.writeFileSync(configPath, JSON.stringify(config, null, 4));
@@ -107,19 +104,12 @@ function loadStats() {
     try {
         if (fs.existsSync(statsPath)) {
             stats = JSON.parse(fs.readFileSync(statsPath, 'utf-8'));
-            // Add new fields if they don't exist for backward compatibility
-            if (!stats.downloadHistory) stats.downloadHistory = [];
-            if (!stats.playlistHistory) stats.playlistHistory = [];
-            if (!stats.failureHistory) stats.failureHistory = [];
         } else {
             stats = {
                 totalSongsDownloaded: 0,
-                downloadHistory: [],
                 playlistsCreated: 0,
-                playlistHistory: [],
                 downloadsInitiated: 0,
                 songsFailed: 0,
-                failureHistory: [],
                 totalLinksProcessed: 0,
                 spotifyLinksProcessed: 0,
                 youtubeLinksProcessed: 0,
@@ -241,7 +231,7 @@ function createWindow() {
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
-        if (!isDev && config.autoUpdateApp) {
+        if (!isDev) {
             autoUpdater.checkForUpdates();
         }
     });
@@ -253,63 +243,6 @@ function createWindow() {
         }
         return false;
     });
-}
-
-// --- AUTO-UPDATER LOGIC ---
-async function performYtdlpUpdate(isAutoUpdate = false) {
-    return new Promise((resolve) => {
-        const ytdlpPath = getNextYtdlpPath();
-        if (!ytdlpPath) {
-            const msg = 'Error: yt-dlp executable not found.';
-            if (!isAutoUpdate) resolve(msg);
-            else resolve();
-            return;
-        }
-        const proc = spawn(ytdlpPath, ['-U']);
-        let output = '';
-        proc.stdout.on('data', (data) => output += data.toString());
-        proc.stderr.on('data', (data) => output += data.toString());
-        proc.on('close', (code) => {
-            if (code === 0) {
-                if (output.includes('Updated yt-dlp to')) {
-                    const msg = 'yt-dlp updated successfully!';
-                    if (mainWindow) mainWindow.webContents.send('show-notification', 'success', 'yt-dlp Updated', msg);
-                    if (!isAutoUpdate) resolve('Updated successfully!');
-                } else {
-                    if (!isAutoUpdate) resolve('yt-dlp is already up to date.');
-                }
-            } else {
-                const msg = `yt-dlp update failed with exit code ${code}.`;
-                if (mainWindow) mainWindow.webContents.send('show-notification', 'error', 'yt-dlp Update Failed', msg);
-                if (!isAutoUpdate) resolve(`${msg}\n${output}`);
-            }
-            if (isAutoUpdate) resolve();
-        });
-        proc.on('error', (err) => {
-            const msg = `Failed to run updater: ${err.message}`;
-            if (mainWindow) mainWindow.webContents.send('show-notification', 'error', 'yt-dlp Update Error', msg);
-            if (!isAutoUpdate) resolve(msg);
-            else resolve();
-        });
-    });
-}
-
-function setupAutoUpdaters() {
-    if (ytdlpUpdateInterval) {
-        clearInterval(ytdlpUpdateInterval);
-        ytdlpUpdateInterval = null;
-    }
-
-    if (config.autoUpdateYtdlp) {
-        log.info('[yt-dlp Updater] Auto-update enabled. Performing initial check.');
-        performYtdlpUpdate(true);
-        ytdlpUpdateInterval = setInterval(() => {
-            log.info('[yt-dlp Updater] Performing periodic check for updates.');
-            performYtdlpUpdate(true);
-        }, 15 * 60 * 1000); // 15 minutes
-    } else {
-        log.info('[yt-dlp Updater] Auto-update disabled.');
-    }
 }
 
 // --- APP LIFECYCLE & IPC HANDLERS ---
@@ -327,7 +260,13 @@ app.whenReady().then(() => {
         mainWindow.webContents.send('media-key-prev');
     });
 
-    setupAutoUpdaters();
+    // Start periodic update checks
+    if (!isDev) {
+        setInterval(() => {
+            log.info('[AutoUpdater] Performing periodic check for updates.');
+            autoUpdater.checkForUpdates();
+        }, 3 * 60 * 1000); // 3 minutes
+    }
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -423,12 +362,9 @@ app.whenReady().then(() => {
     ipcMain.handle('reset-stats', () => {
         stats = {
             totalSongsDownloaded: 0,
-            downloadHistory: [],
             playlistsCreated: 0,
-            playlistHistory: [],
             downloadsInitiated: 0,
             songsFailed: 0,
-            failureHistory: [],
             totalLinksProcessed: 0,
             spotifyLinksProcessed: 0,
             youtubeLinksProcessed: 0,
@@ -464,22 +400,17 @@ app.whenReady().then(() => {
             favoritePlaylists: [],
             normalizeVolume: false,
             hideSearchBars: false,
-            autoUpdateApp: true,
         };
     });
 
     ipcMain.handle('save-settings', (event, newSettings) => {
         try {
-            const wasAutoUpdateEnabled = config.autoUpdateYtdlp;
             config = { ...config, ...newSettings };
             safeWriteFileSync(configPath, JSON.stringify(config, null, 4));
             downloadsDir = config.downloadsPath;
             if (config.spotify) {
                 spotifyApi.setClientId(config.spotify.clientId);
                 spotifyApi.setClientSecret(config.spotify.clientSecret);
-            }
-            if (wasAutoUpdateEnabled !== config.autoUpdateYtdlp) {
-                setupAutoUpdaters();
             }
             return { success: true };
         } catch (error) {
@@ -495,7 +426,32 @@ app.whenReady().then(() => {
     });
 
     ipcMain.handle('update-ytdlp', async () => {
-        return await performYtdlpUpdate(false);
+        return new Promise((resolve) => {
+            const ytdlpPath = getNextYtdlpPath();
+            if (!ytdlpPath) {
+                return resolve('Error: yt-dlp executable not found.');
+            }
+            const proc = spawn(ytdlpPath, ['-U']);
+            let output = '';
+            proc.stdout.on('data', (data) => output += data.toString());
+            proc.stderr.on('data', (data) => output += data.toString());
+            proc.on('close', (code) => {
+                if (code === 0) {
+                    if (output.includes('is up to date')) {
+                        resolve('Up to date!');
+                    } else if (output.includes('Updated yt-dlp to')) {
+                        resolve('Updated successfully!');
+                    } else {
+                        resolve('Update check completed.'); // Fallback for unexpected output
+                    }
+                } else {
+                    resolve(`Update failed with exit code ${code}:\n${output}`);
+                }
+            });
+            proc.on('error', (err) => {
+                resolve(`Failed to run updater: ${err.message}`);
+            });
+        });
     });
 
     ipcMain.handle('open-folder-dialog', async () => {
@@ -617,9 +573,6 @@ app.whenReady().then(() => {
         try {
             await fs.promises.mkdir(newPlaylistPath, { recursive: true });
             stats.playlistsCreated = (stats.playlistsCreated || 0) + 1;
-            if (!stats.playlistHistory) stats.playlistHistory = [];
-            stats.playlistHistory.unshift({ name: newPlaylistName, date: new Date().toISOString() });
-            if (stats.playlistHistory.length > 100) stats.playlistHistory.pop();
             saveStats();
             // Return the created playlist info
             return { 
@@ -667,19 +620,6 @@ app.whenReady().then(() => {
         } catch (error) {
             console.error(`Failed to rename track from ${oldPath} to ${newName}`, error);
             return { success: false, error: error.message };
-        }
-    });
-
-    ipcMain.handle('get-detailed-stats', (event, statType) => {
-        switch (statType) {
-            case 'downloads':
-                return stats.downloadHistory || [];
-            case 'playlists':
-                return stats.playlistHistory || [];
-            case 'failures':
-                return stats.failureHistory || [];
-            default:
-                return [];
         }
     });
 
@@ -833,9 +773,6 @@ app.whenReady().then(() => {
                         if (!isDownloadCancelled) {
                             mainWindow.webContents.send('update-status', `❌ Failed to find link for "${item.name || item.link}": ${error.message}`);
                             stats.songsFailed = (stats.songsFailed || 0) + 1;
-                            if (!stats.failureHistory) stats.failureHistory = [];
-                            stats.failureHistory.unshift({ name: item.name || item.link, date: new Date().toISOString(), reason: 'Link finding failed' });
-                            if (stats.failureHistory.length > 100) stats.failureHistory.pop();
                         }
                     }
                 }
@@ -883,16 +820,10 @@ app.whenReady().then(() => {
                         updateOverallProgress();
                         lastDownloadedFiles.push(filePath);
                         stats.totalSongsDownloaded = (stats.totalSongsDownloaded || 0) + 1;
-                        if (!stats.downloadHistory) stats.downloadHistory = [];
-                        stats.downloadHistory.unshift({ name: item.trackName, date: new Date().toISOString() });
-                        if (stats.downloadHistory.length > 100) stats.downloadHistory.pop();
                     } catch (error) {
                         if (!isDownloadCancelled) {
                             console.error(`Download worker failed:`, error.message);
                             stats.songsFailed = (stats.songsFailed || 0) + 1;
-                            if (!stats.failureHistory) stats.failureHistory = [];
-                            stats.failureHistory.unshift({ name: item.trackName || 'Unknown Track', date: new Date().toISOString(), reason: 'Download failed' });
-                            if (stats.failureHistory.length > 100) stats.failureHistory.pop();
                         }
                     }
                 }
@@ -939,9 +870,6 @@ app.whenReady().then(() => {
             }
             lastDownloadedFiles = [];
             stats.playlistsCreated = (stats.playlistsCreated || 0) + 1;
-            if (!stats.playlistHistory) stats.playlistHistory = [];
-            stats.playlistHistory.unshift({ name: sanitizedPlaylistName, date: new Date().toISOString() });
-            if (stats.playlistHistory.length > 100) stats.playlistHistory.pop();
             saveStats();
             return `Successfully created playlist and moved ${movedCount} files to "${sanitizedPlaylistName}".`;
         } catch (error) {
@@ -1104,11 +1032,6 @@ app.whenReady().then(() => {
         const numberPrefix = (index + 1).toString().padStart(3, '0');
         const outputTemplate = path.join(downloadsDir, `${numberPrefix} - ${sanitizedTrackName}.%(ext)s`);
         const audioFormat = config.fileExtension || 'm4a';
-
-        // FIX: Instead of parsing stdout, we construct the final path ourselves.
-        // This is more reliable as yt-dlp will convert the file to the specified audio format.
-        const finalPath = path.join(downloadsDir, `${numberPrefix} - ${sanitizedTrackName}.${audioFormat}`);
-
         const args = [
             '--extract-audio', 
             '--audio-format', audioFormat, 
@@ -1130,28 +1053,25 @@ app.whenReady().then(() => {
             if (!ytdlpPath) return reject(new Error('No yt-dlp executable found.'));
             const proc = spawn(ytdlpPath, args);
             activeProcesses.add(proc);
-
-            // We only need stdout for progress reporting now.
+            let finalPath = '';
             proc.stdout.on('data', (data) => {
                 const output = data.toString();
-                let progressMatch = output.match(/\[download\]\s+([\d.]+)%/);
+                const progressMatch = output.match(/\[download\]\s+([\d.]+)%/);
                 if (progressMatch && onProgress) {
                     onProgress(parseFloat(progressMatch[1]));
                 } else {
-                    // Fallback for different progress formats
-                    progressMatch = output.match(/(\d+)%/);
-                    if (progressMatch && onProgress) {
-                        onProgress(parseFloat(progressMatch[1]));
+                    const progressMatchSimple = output.match(/(\d+)%/);
+                    if (progressMatchSimple && onProgress) {
+                        onProgress(parseFloat(progressMatchSimple[1]));
                     }
                 }
+                const destinationMatch = output.match(/\[ExtractAudio\] Destination: (.*)/);
+                if (destinationMatch) finalPath = destinationMatch[1].trim();
             });
-
             proc.on('close', async (code) => {
                 activeProcesses.delete(proc);
                 if (isDownloadCancelled) return reject(new Error('Download cancelled'));
-
-                if (code === 0) {
-                    // On success, we assume the file was created at the path we constructed.
+                if (code === 0 && finalPath) {
                     mainWindow.webContents.send('update-status', `✅ [${index + 1}/${total}] Finished: "${sanitizedTrackName}"`);
                     resolve(finalPath);
                 } else {

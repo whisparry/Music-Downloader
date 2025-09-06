@@ -91,7 +91,7 @@
     right: 0;
     bottom: 0;
     padding: 40px;
-    /* overflow-y: auto; */ /* REMOVED: This is now handled by specific views to avoid layout conflicts. */
+    overflow-y: auto;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--tab-switch-speed) ease-in-out;
