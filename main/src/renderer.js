@@ -129,6 +129,11 @@ window.addEventListener('DOMContentLoaded', () => {
     const volumeIconUp = document.getElementById('volume-icon-up');
     const volumeIconMute = document.getElementById('volume-icon-mute');
     const volumeSlider = document.getElementById('volume-slider');
+    const playerPlaylistsContainer = document.getElementById('player-playlists-container');
+    const playerTracksContainer = document.getElementById('player-tracks-container');
+    const playerTracksHeader = document.getElementById('player-tracks-header');
+    const playerPlaylistSearchInput = document.getElementById('player-playlist-search-input');
+    const playerTrackSearchInput = document.getElementById('player-track-search-input');
 
     // --- STATE & CONTEXT (Centralized) ---
     const state = {
@@ -226,7 +231,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu, nowPlaying, currentTime, totalDuration, progressBarContainer, progressBar, shuffleBtn, repeatBtn, repeatStatusText, prevBtn, playPauseBtn, nextBtn, volumeIconContainer, volumeIconUp, volumeIconMute, volumeSlider },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu, nowPlaying, currentTime, totalDuration, progressBarContainer, progressBar, shuffleBtn, repeatBtn, repeatStatusText, prevBtn, playPauseBtn, nextBtn, volumeIconContainer, volumeIconUp, volumeIconMute, volumeSlider, playerPlaylistsContainer, playerTracksContainer, playerTracksHeader, playerPlaylistSearchInput, playerTrackSearchInput },
         state: state,
         helpers: { showLoader, hideLoader, saveSettings, showView, showContextMenu, hideContextMenu },
     };
@@ -561,6 +566,69 @@ window.addEventListener('DOMContentLoaded', () => {
         populateThemeGrid();
     };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
     // --- Drag and Drop for Links ---
     homeView.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('active'); });
     homeView.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('active'); });
@@ -578,6 +646,7 @@ window.addEventListener('DOMContentLoaded', () => {
     advancedSettingsBtn.addEventListener('click', () => showView(advancedSettingsView, advancedSettingsBtn));
     playerBtn.addEventListener('click', () => {
         showView(playerView, playerBtn);
+        initializePlayer(context);
     });
     playlistManagementBtn.addEventListener('click', () => { showView(playlistManagementView, playlistManagementBtn); initializePlaylistManagement(context); });
     consoleBtn.addEventListener('click', () => showView(consoleView, consoleBtn));
@@ -848,5 +917,5 @@ window.addEventListener('DOMContentLoaded', () => {
     initializeClearButtons();
     loadNotificationHistory();
     loadInitialSettings();
-    initializePlayer(context);
+    // The player is now initialized when its tab is clicked.
 });

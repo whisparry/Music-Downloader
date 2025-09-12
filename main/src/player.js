@@ -2,6 +2,13 @@
 
 let ctx = {}; // To hold context (elements, state, helpers)
 const audio = new Audio();
+let currentTracklist = [];
+let currentTrackIndex = -1;
+let playerState = {
+    playlistSearchQuery: '',
+    trackSearchQuery: '',
+    selectedPlaylistPath: null,
+};
 
 // --- Helper Functions ---
 function formatTime(seconds) {
@@ -27,7 +34,27 @@ function updateUI() {
     totalDuration.textContent = formatTime(audio.duration || 0);
 }
 
+function updateNowPlaying() {
+    const { nowPlaying } = ctx.elements;
+    if (currentTrackIndex > -1 && currentTracklist[currentTrackIndex]) {
+        nowPlaying.textContent = currentTracklist[currentTrackIndex].name;
+    } else {
+        nowPlaying.textContent = 'Select a song to play';
+    }
+}
+
 // --- Player Actions ---
+function playTrack(index) {
+    if (index >= 0 && index < currentTracklist.length) {
+        currentTrackIndex = index;
+        const track = currentTracklist[index];
+        audio.src = track.path;
+        play();
+        updateNowPlaying();
+        highlightCurrentTrack();
+    }
+}
+
 function play() {
     if (audio.src) {
         audio.play().catch(e => console.error("Error playing audio:", e));
@@ -39,12 +66,36 @@ function pause() {
 }
 
 function togglePlayPause() {
-    if (audio.paused) {
+    if (!audio.src && currentTracklist.length > 0) {
+        playTrack(0); // Start with the first track if nothing is loaded
+    } else if (audio.paused) {
         play();
     } else {
         pause();
     }
 }
+
+function playNext() {
+    let nextIndex = currentTrackIndex + 1;
+    if (nextIndex >= currentTracklist.length) {
+        nextIndex = 0; // Loop to the beginning
+    }
+    playTrack(nextIndex);
+}
+
+function playPrev() {
+    // If song is more than 3 seconds in, restart it. Otherwise, go to previous.
+    if (audio.currentTime > 3) {
+        audio.currentTime = 0;
+    } else {
+        let prevIndex = currentTrackIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = currentTracklist.length - 1; // Loop to the end
+        }
+        playTrack(prevIndex);
+    }
+}
+
 
 function seek(event) {
     const { progressBarContainer } = ctx.elements;
@@ -69,24 +120,108 @@ function toggleMute() {
     volumeIconMute.classList.toggle('hidden', !audio.muted);
 }
 
+// --- Playlist & Track Rendering ---
+
+function highlightCurrentTrack() {
+    const { playerTracksContainer } = ctx.elements;
+    playerTracksContainer.querySelectorAll('.player-track-item').forEach((item, index) => {
+        item.classList.toggle('playing', index === currentTrackIndex);
+    });
+}
+
+async function renderTracks(playlistPath) {
+    const { playerTracksContainer, playerTracksHeader } = ctx.elements;
+    if (!playlistPath) {
+        playerTracksContainer.innerHTML = `<div class="empty-playlist-message">Select a playlist to see its tracks.</div>`;
+        currentTracklist = [];
+        return;
+    }
+
+    try {
+        const { tracks } = await window.electronAPI.getPlaylistTracks(playlistPath);
+        // FIX: The previous filter was incorrect. This correctly filters for supported audio file extensions.
+        currentTracklist = tracks.filter(t => /\.(m4a|mp3|wav|flac|ogg|webm)$/i.test(t.path));
+        playerTracksContainer.innerHTML = '';
+
+        if (currentTracklist.length === 0) {
+            playerTracksContainer.innerHTML = `<div class="empty-playlist-message">No supported audio files found in this playlist.</div>`;
+            return;
+        }
+
+        const filteredTracks = currentTracklist.filter(t => t.name.toLowerCase().includes(playerState.trackSearchQuery));
+
+        filteredTracks.forEach((track, index) => {
+            const item = document.createElement('div');
+            item.className = 'player-track-item';
+            item.innerHTML = `<span class="track-number">${String(index + 1).padStart(2, '0')}</span><span class="player-track-name" title="${track.name}">${track.name}</span>`;
+            item.addEventListener('click', () => playTrack(index));
+            playerTracksContainer.appendChild(item);
+        });
+        highlightCurrentTrack();
+
+    } catch (error) {
+        console.error("Failed to render player tracks:", error);
+        playerTracksContainer.innerHTML = `<div class="empty-playlist-message">Error loading tracks.</div>`;
+    }
+}
+
+async function renderPlaylists() {
+    const { playerPlaylistsContainer } = ctx.elements;
+    try {
+        const playlists = await window.electronAPI.getPlaylists();
+        playerPlaylistsContainer.innerHTML = '';
+
+        if (!playlists || playlists.length === 0) {
+            playerPlaylistsContainer.innerHTML = `<div class="empty-playlist-message">No playlists found. Set the playlist folder in Settings.</div>`;
+            return;
+        }
+
+        const filteredPlaylists = playlists.filter(p => p.name.toLowerCase().includes(playerState.playlistSearchQuery));
+
+        filteredPlaylists.forEach(p => {
+            const item = document.createElement('div');
+            item.className = 'playlist-list-item';
+            item.dataset.path = p.path;
+            item.innerHTML = `<span class="playlist-name" title="${p.name}">${p.name}</span>`;
+            item.addEventListener('click', () => {
+                playerState.selectedPlaylistPath = p.path;
+                document.querySelectorAll('#player-playlists-container .playlist-list-item').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+                ctx.elements.playerTracksHeader.textContent = p.name;
+                renderTracks(p.path);
+            });
+            playerPlaylistsContainer.appendChild(item);
+        });
+
+    } catch (error) {
+        console.error("Failed to render player playlists:", error);
+        playerPlaylistsContainer.innerHTML = `<div class="empty-playlist-message">Error loading playlists.</div>`;
+    }
+}
+
+
 // --- Initialization ---
 export function initializePlayer(context) {
     ctx = context;
     const { 
         playPauseBtn, prevBtn, nextBtn,
         progressBarContainer, volumeSlider, volumeIconContainer,
-        shuffleBtn, repeatBtn
+        shuffleBtn, repeatBtn, playerPlaylistSearchInput, playerTrackSearchInput
     } = ctx.elements;
+
+    if (ctx.state.isPlayerInitialized) {
+        return; // Already initialized
+    }
 
     // --- Event Listeners for Audio Element ---
     audio.addEventListener('play', () => updatePlayPauseButton(true));
     audio.addEventListener('pause', () => updatePlayPauseButton(false));
     audio.addEventListener('timeupdate', updateUI);
     audio.addEventListener('loadedmetadata', updateUI);
+    audio.addEventListener('ended', playNext);
     audio.addEventListener('volumechange', () => {
         if (volumeSlider) volumeSlider.value = audio.muted ? 0 : audio.volume;
     });
-    // audio.addEventListener('ended', playNext); // TODO: Implement queue and playNext
 
     // --- Event Listeners for UI Controls ---
     playPauseBtn.addEventListener('click', togglePlayPause);
@@ -94,12 +229,27 @@ export function initializePlayer(context) {
     volumeSlider.addEventListener('input', (e) => setVolume(e.target.value));
     volumeIconContainer.addEventListener('click', toggleMute);
 
-    // prevBtn.addEventListener('click', playPrev); // TODO
-    // nextBtn.addEventListener('click', playNext); // TODO
+    prevBtn.addEventListener('click', playPrev);
+    nextBtn.addEventListener('click', playNext);
     // shuffleBtn.addEventListener('click', toggleShuffle); // TODO
     // repeatBtn.addEventListener('click', cycleRepeat); // TODO
 
+    playerPlaylistSearchInput.addEventListener('input', (e) => {
+        playerState.playlistSearchQuery = e.target.value.trim().toLowerCase();
+        renderPlaylists();
+    });
+
+    playerTrackSearchInput.addEventListener('input', (e) => {
+        playerState.trackSearchQuery = e.target.value.trim().toLowerCase();
+        renderTracks(playerState.selectedPlaylistPath);
+    });
+
     // --- Initial State ---
+    renderPlaylists();
+    renderTracks(null);
     setVolume(volumeSlider.value);
     updatePlayPauseButton(false);
+    updateNowPlaying();
+
+    ctx.state.isPlayerInitialized = true;
 }

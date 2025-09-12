@@ -699,13 +699,13 @@ input[type=range]::-moz-range-thumb {
 }
 
 #player-view {
-    justify-content: center;
-    align-items: center;
+    /* FIX: Removed justify-content and align-items to allow content to fill the view. */
+    padding: 20px; /* Add padding to the player view itself */
 }
 
 #player-view.active-view {
     display: flex;
-    padding: 40px;
+    /* FIX: Removed padding from here as it's now on the base #player-view style. */
     box-sizing: border-box;
 }
 
@@ -732,7 +732,15 @@ input[type=range]::-moz-range-thumb {
     min-height: 0;
 }
 
-.pm-playlists-panel, .pm-tracks-panel {
+.player-content-area {
+    flex-grow: 1;
+    display: flex;
+    gap: 20px;
+    min-height: 0;
+}
+
+.pm-playlists-panel, .pm-tracks-panel,
+.player-playlists-panel, .player-tracks-panel {
     display: flex;
     flex-direction: column;
     background-color: var(--bg-secondary);
@@ -741,11 +749,11 @@ input[type=range]::-moz-range-thumb {
     min-width: 0;
 }
 
-.pm-playlists-panel {
+.pm-playlists-panel, .player-playlists-panel {
     flex: 0 0 250px;
 }
 
-.pm-tracks-panel {
+.pm-tracks-panel, .player-tracks-panel {
     flex-grow: 1;
 }
 
@@ -1006,6 +1014,37 @@ body.hide-search-bars .playlist-search-bar {
 
 .pm-track-item:hover {
     background-color: var(--bg-tertiary);
+}
+
+.player-track-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    margin: 2px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.player-track-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.player-track-item.playing {
+    background-color: var(--accent-primary);
+    color: var(--accent-text-color);
+}
+
+.player-track-item.playing .track-number {
+    color: var(--accent-text-color);
+}
+
+.player-track-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pm-track-name {
