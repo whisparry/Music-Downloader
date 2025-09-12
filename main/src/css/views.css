@@ -242,16 +242,6 @@
     border-radius: 8px;
     text-align: center;
     border: 1px solid var(--border-color);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.stat-card[data-stat] {
-    cursor: pointer;
-}
-
-.stat-card[data-stat]:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.2);
 }
 
 .stat-card h3 {
@@ -265,38 +255,6 @@
     font-weight: bold;
     margin-bottom: 0;
     color: var(--text-primary);
-}
-
-.stats-detail-list {
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: 15px;
-    padding-right: 10px; /* for scrollbar */
-}
-
-.stats-detail-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 5px;
-    border-bottom: 1px solid var(--border-color);
-}
-.stats-detail-item:last-child {
-    border-bottom: none;
-}
-
-.stats-detail-name {
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-right: 15px;
-}
-
-.stats-detail-date {
-    color: var(--text-secondary);
-    font-size: 12px;
-    flex-shrink: 0;
 }
 
 #reset-stats-btn {
@@ -1081,6 +1039,53 @@ body.hide-search-bars .playlist-search-bar {
 .pm-delete-btn:hover {
     background-color: var(--danger-primary);
     color: var(--accent-text-color);
+}
+
+#preview-modal-content {
+    max-height: 40vh;
+    margin-bottom: 20px;
+}
+
+.preview-track-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 4px;
+    gap: 10px;
+}
+
+.preview-track-item:nth-child(odd) {
+    background-color: var(--bg-tertiary);
+}
+
+.preview-track-number {
+    color: var(--text-secondary);
+    font-size: 12px;
+    width: 25px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.preview-track-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.preview-track-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.preview-track-artist {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-secondary);
+    font-size: 12px;
 }
 
 .player-controls-bar {

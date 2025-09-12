@@ -52,6 +52,9 @@
     align-items: center;
     padding-top: 20px;
     border-right: 1px solid var(--border-color);
+    -webkit-user-select: none; /* Prevent text selection in the sidebar */
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .nav-item {

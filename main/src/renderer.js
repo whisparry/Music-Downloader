@@ -95,8 +95,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const hideTrackNumbersInput = document.getElementById('hideTrackNumbers');
     const normalizeVolumeInput = document.getElementById('normalizeVolume');
     const hideSearchBarsInput = document.getElementById('hideSearchBars');
-    const autoUpdateYtdlpInput = document.getElementById('autoUpdateYtdlp');
-    const autoUpdateAppInput = document.getElementById('autoUpdateApp');
     const updateYtdlpBtn = document.getElementById('update-ytdlp-btn');
     const checkForUpdatesBtn = document.getElementById('check-for-updates-btn');
     const clearCacheBtn = document.getElementById('clear-cache-btn');
@@ -113,27 +111,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const statsDetailTitle = document.getElementById('stats-detail-title');
     const statsDetailContent = document.getElementById('stats-detail-content');
     const statsDetailCloseBtn = statsDetailModal.querySelector('.modal-close-btn');
-    const contextMenu = document.getElementById('context-menu');
-    const nowPlaying = document.getElementById('now-playing');
-    const currentTime = document.getElementById('current-time');
-    const totalDuration = document.getElementById('total-duration');
-    const progressBarContainer = document.getElementById('progress-bar-container');
-    const progressBar = document.getElementById('progress-bar');
-    const shuffleBtn = document.getElementById('shuffle-btn');
-    const repeatBtn = document.getElementById('repeat-btn');
-    const repeatStatusText = document.getElementById('repeat-status-text');
-    const prevBtn = document.getElementById('prev-btn');
-    const playPauseBtn = document.getElementById('play-pause-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const volumeIconContainer = document.getElementById('volume-icon-container');
-    const volumeIconUp = document.getElementById('volume-icon-up');
-    const volumeIconMute = document.getElementById('volume-icon-mute');
-    const volumeSlider = document.getElementById('volume-slider');
-    const playerPlaylistsContainer = document.getElementById('player-playlists-container');
-    const playerTracksContainer = document.getElementById('player-tracks-container');
-    const playerTracksHeader = document.getElementById('player-tracks-header');
-    const playerPlaylistSearchInput = document.getElementById('player-playlist-search-input');
-    const playerTrackSearchInput = document.getElementById('player-track-search-input');
 
     // --- STATE & CONTEXT (Centralized) ---
     const state = {
@@ -151,6 +128,7 @@ window.addEventListener('DOMContentLoaded', () => {
         playlistSearchQuery: '',
         spotifySearchDebounce: null,
         spotifySearchType: 'playlist',
+        spotifyPreviewTracks: [],
     };
 
     // --- Helper Functions ---
@@ -223,15 +201,13 @@ window.addEventListener('DOMContentLoaded', () => {
             hideTrackNumbers: hideTrackNumbersInput.checked,
             normalizeVolume: normalizeVolumeInput.checked,
             hideSearchBars: hideSearchBarsInput.checked,
-            autoUpdateYtdlp: autoUpdateYtdlpInput.checked,
-            autoUpdateApp: autoUpdateAppInput.checked,
         };
         await window.electronAPI.saveSettings(newSettings);
     };
 
     // --- Context Object for Modules ---
     const context = {
-        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta, contextMenu, nowPlaying, currentTime, totalDuration, progressBarContainer, progressBar, shuffleBtn, repeatBtn, repeatStatusText, prevBtn, playPauseBtn, nextBtn, volumeIconContainer, volumeIconUp, volumeIconMute, volumeSlider, playerPlaylistsContainer, playerTracksContainer, playerTracksHeader, playerPlaylistSearchInput, playerTrackSearchInput },
+        elements: { root, body, closeBtn, homeBtn, settingsBtn, advancedSettingsBtn, playerBtn, playlistManagementBtn, consoleBtn, statsBtn, notificationHistoryBtn, helpBtn, shuffleBtn, repeatBtn, repeatStatusText, refreshPlaylistsBtn, refreshTracksBtn, homeView, settingsView, advancedSettingsView, playerView, playlistManagementView, consoleView, statsView, notificationHistoryView, helpView, downloadBtn, linksInput, consoleOutput, cancelBtn, bigCancelBtn, loadingOverlay, dropZone, createPlaylistBtn, updateNotification, updateMessage, restartBtn, toastNotification, toastIcon, toastTitle, toastMessage, toastCloseBtn, notificationHistoryContainer, clearHistoryBtn, themeGridContainer, favoriteThemeGrid, favoritesContainer, fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, toggleSecretBtn, downloadsPathInput, changePathBtn, playlistsPathInput, changePlaylistsPathBtn, tracksHeader, playlistContainer, audioPlayer, nowPlaying, playPauseBtn, prevBtn, nextBtn, playIcon, pauseIcon, volumeSlider, volumeIconContainer, volumeIcon, muteIcon, playlistsContainer, favoritePlaylistsContainer, favoritePlaylistsGrid, allPlaylistsGrid, progressBar, progressBarContainer, currentTimeEl, totalDurationEl, totalPlaylistsCount, totalTracksCount, playlistSearchInputPlaylists, currentPlaylistTrackCount, playlistSearchInput, playlistSearchBtn, pmPlaylistsContainer, pmFavoritePlaylistsContainer, pmFavoritePlaylistsGrid, pmAllPlaylistsGrid, pmTracksContainer, pmTracksHeader, pmPlaylistSearchInput, pmTrackSearchInput, createNewPlaylistBtnPm, moveTrackModal, moveTrackNameEl, moveTrackDestinationSelect, moveTrackConfirmBtn, moveTrackCancelBtn, modalCloseBtn, totalSongsStat, playlistsCreatedStat, downloadsInitiatedStat, songsFailedStat, linksProcessedStat, spotifyLinksStat, youtubeLinksStat, successRateStat, notificationsReceivedStat, resetStatsBtn, configCategoryHeader, themesCategoryHeader, animationsCategoryHeader, tabSpeedSlider, tabSpeedValue, dropdownSpeedSlider, dropdownSpeedValue, themeFadeSlider, themeFadeValue, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, autoUpdateYtdlpInput, autoUpdateAppInput, updateYtdlpBtn, clearCacheBtn, spotifyLink, spotifySearchInput, spotifyResultsDropdown, spotifyFilterBtn, spotifyFilterDropdown, spotifySearchLimitInput, checkForUpdatesBtn, downloadProgressContainer, downloadProgressBar, downloadEta },
         state: state,
         helpers: { showLoader, hideLoader, saveSettings, showView, showContextMenu, hideContextMenu },
     };
@@ -297,6 +273,9 @@ window.addEventListener('DOMContentLoaded', () => {
             results.forEach(item => {
                 const resultEl = document.createElement('div');
                 resultEl.className = 'spotify-result-item';
+                const spotifyId = item.url.split('/').pop();
+                resultEl.dataset.id = spotifyId;
+                resultEl.dataset.type = item.type.toLowerCase();
 
                 let ownerText = '';
                 if (item.type === 'Playlist') ownerText = `by ${item.owner}`;
@@ -320,6 +299,38 @@ window.addEventListener('DOMContentLoaded', () => {
                     spotifyResultsDropdown.classList.add('hidden');
                     linksInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger clear button check
                 });
+
+                resultEl.addEventListener('contextmenu', async (e) => {
+                    e.preventDefault();
+                    previewModalTitle.textContent = 'Loading...';
+                    previewModalContent.innerHTML = '<div class="spinner"></div>';
+                    spotifyPreviewModal.classList.remove('hidden');
+
+                    const details = await window.electronAPI.getSpotifyItemDetails({ type: resultEl.dataset.type, id: resultEl.dataset.id });
+
+                    if (details && !details.error) {
+                        previewModalTitle.textContent = `${item.type}: ${details.name}`;
+                        previewModalContent.innerHTML = '';
+                        state.spotifyPreviewTracks = details.tracks;
+                        details.tracks.forEach((track, index) => {
+                            const trackEl = document.createElement('div');
+                            trackEl.className = 'preview-track-item';
+                            trackEl.innerHTML = `
+                                <span class="preview-track-number">${index + 1}.</span>
+                                <div class="preview-track-details">
+                                    <span class="preview-track-name" title="${track.name}">${track.name}</span>
+                                    <span class="preview-track-artist" title="${track.artist}">${track.artist}</span>
+                                </div>
+                            `;
+                            previewModalContent.appendChild(trackEl);
+                        });
+                    } else {
+                        previewModalTitle.textContent = 'Error';
+                        previewModalContent.innerHTML = `<p>${details.error || 'Could not load details.'}</p>`;
+                        state.spotifyPreviewTracks = [];
+                    }
+                });
+
                 spotifyResultsDropdown.appendChild(resultEl);
             });
             spotifyResultsDropdown.classList.remove('hidden');
@@ -336,6 +347,17 @@ window.addEventListener('DOMContentLoaded', () => {
         if (!contextMenu.contains(e.target)) {
             hideContextMenu();
         }
+    });
+
+    previewModalCloseBtn.addEventListener('click', () => spotifyPreviewModal.classList.add('hidden'));
+    previewAddAllBtn.addEventListener('click', () => {
+        if (state.spotifyPreviewTracks.length > 0) {
+            const links = state.spotifyPreviewTracks.map(t => t.url).join('\n');
+            linksInput.value += (linksInput.value ? '\n' : '') + links;
+            linksInput.dispatchEvent(new Event('input', { bubbles: true }));
+            showNotification('success', 'Added to Queue', `${state.spotifyPreviewTracks.length} tracks added to the download input.`);
+        }
+        spotifyPreviewModal.classList.add('hidden');
     });
 
     // --- Clear Input Button Logic ---
@@ -422,15 +444,8 @@ window.addEventListener('DOMContentLoaded', () => {
         toastNotification.className = `toast-notification ${type}`;
         const iconMap = { success: '✓', error: '✗', info: 'ℹ️' };
         toastIcon.innerHTML = iconMap[type] || 'ℹ️';
-        toastNotification.classList.remove('hidden', 'hiding');
-        
-        state.toastTimer = setTimeout(() => {
-            toastNotification.classList.add('hiding');
-            toastNotification.addEventListener('animationend', () => {
-                toastNotification.classList.add('hidden');
-                toastNotification.classList.remove('hiding');
-            }, { once: true });
-        }, 5000);
+        toastNotification.classList.remove('hidden');
+        state.toastTimer = setTimeout(() => toastNotification.classList.add('hidden'), 5000);
     }
     context.helpers.showNotification = showNotification; // Add to context
 
@@ -540,11 +555,9 @@ window.addEventListener('DOMContentLoaded', () => {
             setToggle(hideTrackNumbersInput, 'hide-track-numbers', currentConfig.hideTrackNumbers || false);
             setToggle(hideSearchBarsInput, 'hide-search-bars', currentConfig.hideSearchBars || false);
             normalizeVolumeInput.checked = currentConfig.normalizeVolume || false;
-            autoUpdateYtdlpInput.checked = currentConfig.autoUpdateYtdlp || false;
-            autoUpdateAppInput.checked = currentConfig.autoUpdateApp !== false;
             spotifySearchLimitInput.value = currentConfig.spotifySearchLimit || 10;
         }
-        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, spotifySearchLimitInput, autoUpdateYtdlpInput, autoUpdateAppInput].forEach(input => input.addEventListener('change', saveSettings));
+        [fileExtensionInput, downloadThreadsInput, clientIdInput, clientSecretInput, tabSpeedSlider, dropdownSpeedSlider, themeFadeSlider, autoCreatePlaylistInput, hideRefreshButtonsInput, hidePlaylistCountsInput, hideTrackNumbersInput, normalizeVolumeInput, hideSearchBarsInput, spotifySearchLimitInput].forEach(input => input.addEventListener('change', saveSettings));
         hideRefreshButtonsInput.addEventListener('change', () => body.classList.toggle('hide-refresh-buttons', hideRefreshButtonsInput.checked));
         hidePlaylistCountsInput.addEventListener('change', () => body.classList.toggle('hide-playlist-counts', hidePlaylistCountsInput.checked));
         hideTrackNumbersInput.addEventListener('change', () => body.classList.toggle('hide-track-numbers', hideTrackNumbersInput.checked));
@@ -723,33 +736,9 @@ window.addEventListener('DOMContentLoaded', () => {
     downloadBtn.addEventListener('click', () => {
         const links = linksInput.value.split('\n').filter(link => link.trim() !== '');
         if (links.length === 0) {
-            showNotification('error', 'Input Error', 'Please enter at least one link.');
+            appendConsoleMessage('Please enter at least one link.');
             return;
         }
-
-        const validLinks = [];
-        const invalidLinks = [];
-        const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/;
-        const spotifyRegex = /^(https?:\/\/)?(open\.)?spotify\.com\/.+$/;
-
-        for (const link of links) {
-            if (youtubeRegex.test(link) || spotifyRegex.test(link)) {
-                validLinks.push(link);
-            } else {
-                invalidLinks.push(link);
-            }
-        }
-
-        if (invalidLinks.length > 0 && validLinks.length > 0) {
-            showNotification('info', 'Invalid Links Skipped', `Some links were invalid and will be ignored.`);
-            linksInput.value = validLinks.join('\n');
-        }
-
-        if (validLinks.length === 0) {
-            showNotification('error', 'No Valid Links', 'None of the provided links were valid Spotify or YouTube links.');
-            return;
-        }
-
         showView(consoleView, consoleBtn);
         downloadBtn.classList.add('hidden');
         linksInput.disabled = true;
@@ -760,7 +749,7 @@ window.addEventListener('DOMContentLoaded', () => {
         downloadProgressContainer.classList.remove('hidden');
         downloadProgressBar.style.width = '0%';
         downloadEta.textContent = 'Estimated time remaining: calculating...';
-        window.electronAPI.startDownload(validLinks);
+        window.electronAPI.startDownload(links);
     });
     cancelBtn.addEventListener('click', () => window.electronAPI.cancelDownload());
     bigCancelBtn.addEventListener('click', () => window.electronAPI.cancelDownload());
@@ -794,7 +783,6 @@ window.addEventListener('DOMContentLoaded', () => {
         setToggle(hidePlaylistCountsInput, 'hide-playlist-counts', defaultSettings.hidePlaylistCounts || false);
         setToggle(hideTrackNumbersInput, 'hide-track-numbers', defaultSettings.hideTrackNumbers || false);
         setToggle(hideSearchBarsInput, 'hide-search-bars', defaultSettings.hideSearchBars || false);
-        autoUpdateAppInput.checked = defaultSettings.autoUpdateApp !== false;
         const setSlider = (slider, valueEl, prop, value) => {
             slider.value = value;
             valueEl.textContent = `${value}s`;
@@ -809,46 +797,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Stats Logic ---
-    async function showStatDetails(statType) {
-        const titles = {
-            downloads: 'Recent Downloads',
-            playlists: 'Recently Created Playlists',
-            failures: 'Recent Failures'
-        };
-
-        if (!titles[statType]) return;
-
-        statsDetailTitle.textContent = titles[statType];
-        statsDetailContent.innerHTML = '<div class="spinner" style="margin: 20px auto;"></div>';
-        statsDetailModal.classList.remove('hidden');
-
-        const history = await window.electronAPI.getDetailedStats(statType);
-        statsDetailContent.innerHTML = '';
-
-        if (!history || history.length === 0) {
-            statsDetailContent.innerHTML = `<div class="empty-playlist-message">No history available.</div>`;
-            return;
-        }
-
-        history.forEach(item => {
-            const itemEl = document.createElement('div');
-            itemEl.className = 'stats-detail-item';
-            const date = new Date(item.date).toLocaleString();
-            itemEl.innerHTML = `
-                <span class="stats-detail-name" title="${item.name}">${item.name}</span>
-                <span class="stats-detail-date">${date}</span>
-            `;
-            statsDetailContent.appendChild(itemEl);
-        });
-    }
-
-    statsDetailCloseBtn.addEventListener('click', () => statsDetailModal.classList.add('hidden'));
-    statsDetailModal.addEventListener('click', (e) => {
-        if (e.target === statsDetailModal) {
-            statsDetailModal.classList.add('hidden');
-        }
-    });
-
     async function initializeStats() {
         const statsData = await window.electronAPI.getStats();
         if (statsData) {
@@ -860,15 +808,9 @@ window.addEventListener('DOMContentLoaded', () => {
             spotifyLinksStat.textContent = statsData.spotifyLinksProcessed || 0;
             youtubeLinksStat.textContent = statsData.youtubeLinksProcessed || 0;
             notificationsReceivedStat.textContent = statsData.notificationsReceived || 0;
-            const successRate = (statsData.totalSongsDownloaded + statsData.songsFailed > 0) ? ((statsData.totalSongsDownloaded / (statsData.totalSongsDownloaded + statsData.songsFailed)) * 100) : 0;
+            const successRate = (statsData.downloadsInitiated > 0) ? ((statsData.totalSongsDownloaded / (statsData.totalSongsDownloaded + statsData.songsFailed)) * 100) : 0;
             successRateStat.textContent = `${successRate.toFixed(1)}%`;
         }
-        document.querySelectorAll('#stats-view .stat-card').forEach(card => {
-            const statType = card.dataset.stat;
-            if (statType) {
-                card.addEventListener('click', () => showStatDetails(statType));
-            }
-        });
     }
     resetStatsBtn.addEventListener('click', async () => {
         if (confirm('Are you sure you want to reset all statistics? This cannot be undone.')) {
@@ -907,10 +849,6 @@ window.addEventListener('DOMContentLoaded', () => {
     window.electronAPI.onDownloadProgress(({ progress, eta }) => {
         if (downloadProgressBar) downloadProgressBar.style.width = `${progress}%`;
         if (downloadEta) downloadEta.textContent = `Estimated time remaining: ${eta}`;
-    });
-
-    window.electronAPI.onShowNotification((type, title, message) => {
-        showNotification(type, title, message);
     });
 
     // --- Initial Load ---
